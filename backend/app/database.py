@@ -1,17 +1,37 @@
 from sqlalchemy import create_engine
 from sqlalchemy import text
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm import sessionmaker
 
 from app.config import DATABASE_URL
 
-engine = create_engine(
-    DATABASE_URL,
-    connect_args={
-        "check_same_thread": False
-    },
-    echo=False
-)
+
+# ===========================================================
+# Engine
+# ===========================================================
+
+if DATABASE_URL.startswith("sqlite"):
+
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args={
+            "check_same_thread": False
+        },
+        echo=False
+    )
+
+else:
+
+    engine = create_engine(
+        DATABASE_URL,
+        pool_pre_ping=True,
+        echo=False
+    )
+
+
+# ===========================================================
+# Session
+# ===========================================================
 
 SessionLocal = sessionmaker(
     autocommit=False,
@@ -21,6 +41,10 @@ SessionLocal = sessionmaker(
 
 Base = declarative_base()
 
+
+# ===========================================================
+# Dependency
+# ===========================================================
 
 def get_db():
 
@@ -33,8 +57,14 @@ def get_db():
         db.close()
 
 
+# ===========================================================
+# SQLite Schema Upgrades
+# ===========================================================
+
 def ensure_database_schema():
 
+    # This migration helper is only needed for SQLite.
+    # PostgreSQL should use SQLAlchemy models / Alembic migrations.
     if not DATABASE_URL.startswith("sqlite"):
         return
 
@@ -64,21 +94,38 @@ def ensure_database_schema():
     }
 
     with engine.begin() as connection:
+
         for table_name, columns in table_columns.items():
-            existing_columns = {
-                row[1]
-                for row in connection.execute(
-                    text(f"PRAGMA table_info({table_name})")
-                )
-            }
+
+            try:
+
+                existing_columns = {
+                    row[1]
+                    for row in connection.execute(
+                        text(f"PRAGMA table_info({table_name})")
+                    )
+                }
+
+            except Exception:
+
+                # Table doesn't exist yet.
+                continue
 
             for column_name, column_type in columns.items():
+
                 if column_name in existing_columns:
                     continue
 
                 connection.execute(
                     text(
-                        f"ALTER TABLE {table_name} "
-                        f"ADD COLUMN {column_name} {column_type}"
+                        f"""
+                        ALTER TABLE {table_name}
+                        ADD COLUMN {column_name} {column_type}
+                        """
                     )
+                )
+
+                print(
+                    f"Added column '{column_name}' "
+                    f"to table '{table_name}'"
                 )
