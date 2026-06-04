@@ -9,3 +9,4 @@ langchain-groq
 langchain-anthropic
 feedparser
 APScheduler
+psycopg[binary]
