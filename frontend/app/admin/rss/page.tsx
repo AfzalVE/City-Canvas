@@ -139,48 +139,66 @@ export default function RSSPage() {
   const otherFeeds = filteredFeeds.slice(10);
   const displayedFeeds = view === 'top' ? topFeeds : otherFeeds;
 
+  const statusOptions = ['all', 'pending', 'approved', 'rejected'] as const;
+  const cityOptions = ['all', 'Amsterdam', 'Paris', 'Global'];
+
   return (
     <div className="p-8">
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-        <div className="flex flex-wrap gap-3">
-          {(['pending', 'approved', 'rejected', 'all'] as const).map((status) => (
-            <button
-              key={status}
-              onClick={() => setStatusFilter(status)}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                statusFilter === status
-                  ? 'bg-forest-700 text-white'
-                  : 'bg-white text-forest-700 border border-gray-200 hover:bg-gray-50'
-              }`}
-            >
-              {status}
-            </button>
-          ))}
+
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+
+        {/* LEFT: Filters */}
+        <div className="flex flex-wrap items-center gap-3">
+
+          {/* Status Filter */}
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+            className="px-4 py-2 rounded-lg text-sm font-semibold border border-gray-200 bg-white text-forest-700 focus:outline-none focus:ring-2 focus:ring-forest-700"
+          >
+            {statusOptions.map((status) => (
+              <option key={status} value={status}>
+                {status.charAt(0).toUpperCase() + status.slice(1)}
+              </option>
+            ))}
+          </select>
+
+          {/* City Filter */}
+          <select
+            value={cityFilter}
+            onChange={(e) => setCityFilter(e.target.value)}
+            className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-200 bg-white text-forest-700 focus:outline-none focus:ring-2 focus:ring-forest-700"
+          >
+            {cityOptions.map((city) => (
+              <option key={city} value={city}>
+                {city === 'all' ? 'All Cities' : city}
+              </option>
+            ))}
+          </select>
+
         </div>
 
-        <div className="flex gap-2">
-          <button onClick={fetchNow} disabled={running} className="btn-primary text-xs disabled:opacity-70">
-            {running ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+        {/* RIGHT: Action Button */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={fetchNow}
+            disabled={running}
+            className="btn-primary text-xs disabled:opacity-70 flex items-center gap-2"
+          >
+            {running ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <RefreshCw className="w-4 h-4" />
+            )}
             Fetch RSS & Auto Score
           </button>
         </div>
+
       </div>
 
-      <div className="flex flex-wrap gap-3 mb-8">
-        {['all', 'Amsterdam', 'Paris', 'Global'].map((city) => (
-          <button
-            key={city}
-            onClick={() => setCityFilter(city)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              cityFilter === city
-                ? 'bg-forest-700 text-white'
-                : 'bg-white text-forest-700 border border-gray-200 hover:bg-gray-50'
-            }`}
-          >
-            {city}
-          </button>
-        ))}
-      </div>
+
+
+
 
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
@@ -194,21 +212,19 @@ export default function RSSPage() {
         <div className="flex gap-2">
           <button
             onClick={() => setView('top')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              view === 'top'
-                ? 'bg-forest-100 text-forest-800'
-                : 'bg-white text-forest-700 border border-gray-200 hover:bg-gray-50'
-            }`}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${view === 'top'
+              ? 'bg-forest-100 text-forest-800'
+              : 'bg-white text-forest-700 border border-gray-200 hover:bg-gray-50'
+              }`}
           >
             Top 10
           </button>
           <button
             onClick={() => setView('others')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              view === 'others'
-                ? 'bg-forest-100 text-forest-800'
-                : 'bg-white text-forest-700 border border-gray-200 hover:bg-gray-50'
-            }`}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${view === 'others'
+              ? 'bg-forest-100 text-forest-800'
+              : 'bg-white text-forest-700 border border-gray-200 hover:bg-gray-50'
+              }`}
           >
             Other ({otherFeeds.length})
           </button>
@@ -230,7 +246,11 @@ export default function RSSPage() {
             const pending = feed.approval_status === 'pending';
 
             return (
-              <article key={feed.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+              <article
+                key={feed.id}
+                className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col h-full"
+              >
+                {/* IMAGE */}
                 <div className="relative aspect-[3/2] bg-gray-200">
                   <img
                     src={imageFor(feed)}
@@ -242,7 +262,10 @@ export default function RSSPage() {
                   />
                 </div>
 
-                <div className="p-6">
+                {/* CONTENT */}
+                <div className="p-6 flex flex-col flex-1">
+
+                  {/* TOP TAGS */}
                   <div className="flex flex-wrap gap-2 mb-4">
                     <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
                       {feed.city || 'Global'}
@@ -255,20 +278,26 @@ export default function RSSPage() {
                     </span>
                   </div>
 
-                  <h2 className="font-serif text-xl leading-snug text-forest-900 line-clamp-2">
+                  {/* TITLE (fixed height behavior via line clamp) */}
+                  <h2 className="font-serif text-xl leading-snug text-forest-900 line-clamp-2 min-h-[3.5rem]">
                     {feed.title}
                   </h2>
 
-                  <p className="mt-4 text-sm leading-relaxed text-slate-700 line-clamp-3">
-                    {feed.summary || feed.scoring_reason || 'Run the scoring agent to add editorial reasoning for this article.'}
+                  {/* SUMMARY */}
+                  <p className="mt-4 text-sm leading-relaxed text-slate-700 line-clamp-3 min-h-[4.5rem]">
+                    {feed.summary ||
+                      feed.scoring_reason ||
+                      'Run the scoring agent to add editorial reasoning for this article.'}
                   </p>
 
+                  {/* SCORING REASON */}
                   {feed.scoring_reason && (
-                    <p className="mt-3 rounded-lg bg-cream-50 px-3 py-2 text-xs leading-relaxed text-forest-700 line-clamp-3">
+                    <p className="mt-3 rounded-lg bg-cream-50 px-3 py-2 text-xs leading-relaxed text-forest-700 line-clamp-3 min-h-[3rem]">
                       {feed.scoring_reason}
                     </p>
                   )}
 
+                  {/* META */}
                   <div className="mt-5 space-y-2 text-xs text-slate-500">
                     <div className="flex items-center gap-2">
                       <MapPin className="w-3.5 h-3.5" />
@@ -280,6 +309,7 @@ export default function RSSPage() {
                     </div>
                   </div>
 
+                  {/* LINK */}
                   <a
                     href={feed.link}
                     target="_blank"
@@ -291,7 +321,8 @@ export default function RSSPage() {
                     <ExternalLink className="w-3.5 h-3.5" />
                   </a>
 
-                  <div className="mt-6 flex gap-3">
+                  {/* ACTIONS - PINNED TO BOTTOM */}
+                  <div className="mt-auto pt-6 flex gap-3">
                     {pending ? (
                       <>
                         <button
@@ -299,9 +330,14 @@ export default function RSSPage() {
                           disabled={busyId === feed.id}
                           className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-60"
                         >
-                          {busyId === feed.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                          {busyId === feed.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <CheckCircle className="w-4 h-4" />
+                          )}
                           Approve
                         </button>
+
                         <button
                           onClick={() => setArticleStatus(feed.id, 'rejected')}
                           disabled={busyId === feed.id}
@@ -312,13 +348,15 @@ export default function RSSPage() {
                         </button>
                       </>
                     ) : (
-                      <span className={
-                        feed.approval_status === 'approved'
-                          ? 'status-approved'
-                          : feed.approval_status === 'rejected'
-                          ? 'status-rejected'
-                          : 'status-pending'
-                      }>
+                      <span
+                        className={
+                          feed.approval_status === 'approved'
+                            ? 'status-approved'
+                            : feed.approval_status === 'rejected'
+                              ? 'status-rejected'
+                              : 'status-pending'
+                        }
+                      >
                         {feed.approval_status}
                       </span>
                     )}

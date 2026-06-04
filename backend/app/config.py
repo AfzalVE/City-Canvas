@@ -52,7 +52,14 @@ APP_NAME = os.getenv(
     "APP_NAME",
     "Travel Content Agent"
 )
-
+FRONTEND_URLS = [
+    url.strip()
+    for url in os.getenv(
+        "FRONTEND_URLS",
+        "http://localhost:5173"
+    ).split(",")
+    if url.strip()
+]
 ADMIN_USERNAME = os.getenv(
     "ADMIN_USERNAME",
     "admin"
