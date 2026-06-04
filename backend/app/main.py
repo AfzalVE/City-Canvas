@@ -1,3 +1,4 @@
+from app.config import APP_NAME, FRONTEND_URLS
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -32,17 +33,13 @@ app = FastAPI(
 # =====================================
 # CORS
 # =====================================
-
-origins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-]
+print("===================================")
+print("Allowed CORS origins:", FRONTEND_URLS)
+print("===================================")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=FRONTEND_URLS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

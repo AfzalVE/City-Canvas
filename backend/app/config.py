@@ -53,12 +53,15 @@ APP_NAME = os.getenv(
     "Travel Content Agent"
 )
 FRONTEND_URLS = [
-    url.strip()
-    for url in os.getenv(
-        "FRONTEND_URLS",
-        "http://localhost:5173"
-    ).split(",")
-    if url.strip()
+    "https://city-canvas.vercel.app",
+    *[
+        url.strip()
+        for url in os.getenv(
+            "FRONTEND_URLS",
+            "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000"
+        ).split(",")
+        if url.strip()
+    ]
 ]
 ADMIN_USERNAME = os.getenv(
     "ADMIN_USERNAME",
