@@ -3,33 +3,33 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: {
-    default: 'Neem Travels | Slow Travel in Amsterdam & Paris',
-    template: '%s | Neem Travels',
+    default: 'Virtual Holidays | Slow Travel in Amsterdam & Paris',
+    template: '%s | Virtual Holidays',
   },
   description:
     'Discover curated slow travel experiences in Amsterdam and Paris. Handpicked destinations, cultural immersion, and authentic local experiences for the discerning traveller.',
   keywords: ['Amsterdam travel', 'Paris travel', 'slow travel', 'European lifestyle', 'cultural travel', 'travel blog'],
-  authors: [{ name: 'Neem Travels' }],
-  creator: 'Neem Travels',
+  authors: [{ name: 'Virtual Holidays' }],
+  creator: 'Virtual Holidays',
   openGraph: {
     type: 'website',
     locale: 'en_US',
     url: 'https://neemtravels.com',
-    siteName: 'Neem Travels',
-    title: 'Neem Travels | Slow Travel in Amsterdam & Paris',
+    siteName: 'Virtual Holidays',
+    title: 'Virtual Holidays | Slow Travel in Amsterdam & Paris',
     description: 'Discover curated slow travel experiences in Amsterdam and Paris.',
     images: [
       {
         url: 'https://images.pexels.com/photos/1414467/pexels-photo-1414467.jpeg?auto=compress&cs=tinysrgb&w=1200',
         width: 1200,
         height: 630,
-        alt: 'Neem Travels - Amsterdam Canals',
+        alt: 'Virtual Holidays - Amsterdam Canals',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Neem Travels | Slow Travel in Amsterdam & Paris',
+    title: 'Virtual Holidays | Slow Travel in Amsterdam & Paris',
     description: 'Discover curated slow travel experiences in Amsterdam and Paris.',
     images: ['https://images.pexels.com/photos/1414467/pexels-photo-1414467.jpeg?auto=compress&cs=tinysrgb&w=1200'],
   },

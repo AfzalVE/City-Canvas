@@ -2,7 +2,7 @@
   # Travel Content Automation Platform — Initial Schema
 
   ## Overview
-  Full schema for the Neem Travels content automation platform including:
+  Full schema for the Virtual Holidays content automation platform including:
   RSS feed management, article collection, content generation, approval workflows, publishing, blog CMS, and newsletter.
 
   ## Tables
@@ -218,7 +218,7 @@ CREATE TABLE IF NOT EXISTS blog_posts (
   excerpt text,
   content text NOT NULL DEFAULT '',
   featured_image text,
-  author_name text NOT NULL DEFAULT 'Neem Travels',
+  author_name text NOT NULL DEFAULT 'Virtual Holidays',
   author_avatar text,
   category text NOT NULL DEFAULT 'Travel',
   tags text[] NOT NULL DEFAULT '{}',

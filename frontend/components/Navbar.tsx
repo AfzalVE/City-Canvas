@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { Menu, X, ChevronDown, Leaf } from 'lucide-react';
+import { Menu, X, ChevronDown, Leaf,Plane } from 'lucide-react';
 
 const navLinks = [
   {
@@ -41,7 +41,7 @@ export default function Navbar() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group">
             <div className="w-9 h-9 bg-forest-600 rounded-sm flex items-center justify-center group-hover:bg-forest-700 transition-colors">
-              <Leaf className="w-5 h-5 text-cream-100" />
+              <Plane className="w-5 h-5 text-cream-100" />
             </div>
             <div>
               <span
@@ -49,7 +49,7 @@ export default function Navbar() {
                   scrolled ? 'text-forest-800' : 'text-cream-100'
                 }`}
               >
-                Neem Travels
+                Virtual Holidays
               </span>
             </div>
           </Link>

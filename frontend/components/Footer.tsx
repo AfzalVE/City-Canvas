@@ -15,7 +15,7 @@ export default function Footer() {
               <div className="w-9 h-9 bg-gold-500 rounded-sm flex items-center justify-center">
                 <Leaf className="w-5 h-5 text-forest-900" />
               </div>
-              <span className="font-serif text-xl font-semibold text-cream-100">Neem Travels</span>
+              <span className="font-serif text-xl font-semibold text-cream-100">Virtual Holidays</span>
             </Link>
             <p className="text-sm text-cream-400 leading-relaxed mb-6">
               Curating slow travel experiences in Amsterdam and Paris for those who seek depth over distance.
@@ -137,7 +137,7 @@ export default function Footer() {
       <div className="border-t border-forest-800">
         <div className="container-custom py-5 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-xs text-cream-600">
-            &copy; {year} Neem Travels. All rights reserved.
+            &copy; {year} Virtual Holidays. All rights reserved.
           </p>
           <p className="text-xs text-cream-600">
             Crafted with care for slow travellers everywhere.

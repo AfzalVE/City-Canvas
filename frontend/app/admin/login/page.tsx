@@ -36,7 +36,7 @@ export default function AdminLoginPage() {
             <Leaf className="w-5 h-5 text-cream-100" />
           </div>
           <div>
-            <div className="text-base font-semibold text-forest-800 font-serif">Neem Travels</div>
+            <div className="text-base font-semibold text-forest-800 font-serif">Virtual Holidays</div>
             <div className="text-xs text-forest-500">Admin Access</div>
           </div>
         </Link>

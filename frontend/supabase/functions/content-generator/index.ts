@@ -8,7 +8,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-const BRAND_SYSTEM_PROMPT = `You are the content writer for Neem Travels — a premium slow travel company specialising in Amsterdam and Paris.
+const BRAND_SYSTEM_PROMPT = `You are the content writer for Virtual Holidays — a premium slow travel company specialising in Amsterdam and Paris.
 
 Brand Voice:
 - Sophisticated yet warm and personal
@@ -83,7 +83,7 @@ Description: ${article.description || "No description available"}
       messages: [
         {
           role: "user",
-          content: `Based on this article from ${article.city}, create branded social media content and a blog post for Neem Travels.
+          content: `Based on this article from ${article.city}, create branded social media content and a blog post for Virtual Holidays.
 
 ${articleContext}
 

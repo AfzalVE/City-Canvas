@@ -40,7 +40,7 @@ export default function WhyUsSection() {
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           {/* Left Content */}
           <div>
-            <span className="section-subtitle text-gold-400">Why Neem Travels</span>
+            <span className="section-subtitle text-gold-400">Why Virtual Holidays</span>
             <h2 className="font-serif text-4xl md:text-5xl text-cream-100 mt-3 mb-4 leading-tight">
               Travel That Leaves
               <br />
@@ -48,7 +48,7 @@ export default function WhyUsSection() {
             </h2>
             <div className="w-16 h-0.5 bg-gold-500 mb-6" />
             <p className="text-cream-400 leading-relaxed mb-8 text-base">
-              We founded Neem Travels on a simple belief: the best journeys aren&apos;t measured in
+              We founded Virtual Holidays on a simple belief: the best journeys aren&apos;t measured in
               distance, but in depth. We curate experiences that connect you to the living culture,
               history, and people of Amsterdam and Paris.
             </p>

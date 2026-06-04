@@ -7,7 +7,7 @@ const testimonials = [
     location: 'London, UK',
     avatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop&crop=face',
     rating: 5,
-    text: 'Neem Travels completely changed how we experience travel. Our week in Amsterdam was unlike anything we\'ve done before — intimate, unhurried, and full of moments we couldn\'t have found on our own.',
+    text: 'Virtual Holidays completely changed how we experience travel. Our week in Amsterdam was unlike anything we\'ve done before — intimate, unhurried, and full of moments we couldn\'t have found on our own.',
     destination: 'Amsterdam',
   },
   {

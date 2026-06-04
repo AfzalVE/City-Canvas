@@ -8,7 +8,7 @@ import { ArrowLeft, Calendar, Clock, Tag } from 'lucide-react';
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   return {
     title: `Blog Post — ${params.slug.replace(/-/g, ' ')}`,
-    description: 'Read this travel story from Neem Travels.',
+    description: 'Read this travel story from Virtual Holidays.',
   };
 }
 

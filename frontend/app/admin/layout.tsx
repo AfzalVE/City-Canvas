@@ -101,7 +101,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <Leaf className="w-4 h-4 text-cream-100" />
             </div>
             <div>
-              <div className="text-sm font-semibold text-forest-800 font-serif">Neem Travels</div>
+              <div className="text-sm font-semibold text-forest-800 font-serif">Virtual Holidays</div>
               <div className="text-xs text-forest-500">Admin Dashboard</div>
             </div>
           </Link>

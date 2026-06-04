@@ -7,7 +7,7 @@ import { ArrowRight, Heart, Leaf, Globe, Users } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'About Us',
-  description: 'Neem Travels was born from a love of slow, meaningful travel in Amsterdam and Paris. Meet our team and learn our philosophy.',
+  description: 'Virtual Holidays was born from a love of slow, meaningful travel in Amsterdam and Paris. Meet our team and learn our philosophy.',
 };
 
 const team = [
@@ -72,7 +72,7 @@ export default function AboutPage() {
               </h1>
               <div className="w-16 h-0.5 bg-gold-500 mb-6" />
               <p className="text-cream-400 text-lg leading-relaxed">
-                Neem Travels was founded on one conviction: that meaningful travel requires time, intention,
+                Virtual Holidays was founded on one conviction: that meaningful travel requires time, intention,
                 and local guidance — not rushed itineraries and over-booked attractions.
               </p>
             </div>
@@ -98,7 +98,7 @@ export default function AboutPage() {
                 </p>
                 <p className="prose-travel">
                   Pierre Beaumont joined from Paris in 2021, bringing the same philosophy to the French capital.
-                  Together, they built Neem Travels into the platform it is today: a deeply curated, community-rooted
+                  Together, they built Virtual Holidays into the platform it is today: a deeply curated, community-rooted
                   guide to slow travel in two of Europe&apos;s greatest cities.
                 </p>
               </div>
@@ -110,7 +110,7 @@ export default function AboutPage() {
                 />
                 <div className="absolute -bottom-6 -left-6 bg-forest-600 text-cream-100 rounded-xl p-6 shadow-xl max-w-xs">
                   <div className="font-serif text-2xl text-gold-400 font-bold mb-1">2019</div>
-                  <div className="text-sm text-cream-300">The year Neem Travels took its first guests through the Jordaan.</div>
+                  <div className="text-sm text-cream-300">The year Virtual Holidays took its first guests through the Jordaan.</div>
                 </div>
               </div>
             </div>
