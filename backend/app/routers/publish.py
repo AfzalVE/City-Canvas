@@ -28,7 +28,7 @@ def schedule_publish(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     return {
-        "message": "Publish queue updated",
+        "message": "Content published",
         "result": result,
     }
 

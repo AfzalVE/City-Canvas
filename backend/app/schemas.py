@@ -54,6 +54,7 @@ class ScoringRunRequest(BaseModel):
 
     limit: int = Field(default=10, ge=1, le=25)
     city: str | None = None
+    only_unscored: bool = True
 
 
 class ScoreResult(BaseModel):

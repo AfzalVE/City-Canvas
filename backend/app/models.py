@@ -79,6 +79,28 @@ class Feed(Base):
         default=0
     )
 
+    scoring_breakdown = Column(
+        Text
+    )
+
+    scoring_reason = Column(
+        Text
+    )
+
+    scoring_confidence = Column(
+        Float,
+        default=0
+    )
+
+    fetch_status = Column(
+        String(100),
+        default="fetched"
+    )
+
+    editor_notes = Column(
+        Text
+    )
+
     # Approval Workflow
     approval_status = Column(
         String(50),
@@ -138,6 +160,11 @@ class GeneratedContent(Base):
         nullable=False
     )
 
+    platform = Column(
+        String(100),
+        default="blog"
+    )
+
     # Generated Article
     headline = Column(
         String(500),
@@ -171,6 +198,10 @@ class GeneratedContent(Base):
         Text
     )
 
+    hashtags = Column(
+        Text
+    )
+
     # Branding
     brand_tone = Column(
         String(100)
@@ -187,6 +218,22 @@ class GeneratedContent(Base):
 
     featured_image_url = Column(
         String(1000)
+    )
+
+    photography_direction = Column(
+        Text
+    )
+
+    source_url = Column(
+        String(1000)
+    )
+
+    suggested_post_time = Column(
+        String(100)
+    )
+
+    scheduled_publish_time = Column(
+        DateTime
     )
 
     # Workflow
@@ -206,6 +253,25 @@ class GeneratedContent(Base):
 
     approved_at = Column(
         DateTime
+    )
+
+    validation_status = Column(
+        String(100),
+        default="not_checked"
+    )
+
+    validation_score = Column(
+        Float,
+        default=0
+    )
+
+    validation_issues = Column(
+        Text
+    )
+
+    revision_count = Column(
+        Integer,
+        default=0
     )
 
     created_at = Column(
@@ -279,6 +345,10 @@ class PublishLog(Base):
 
     response_message = Column(
         Text
+    )
+
+    scheduled_publish_time = Column(
+        DateTime
     )
 
     published_at = Column(

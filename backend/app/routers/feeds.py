@@ -6,7 +6,11 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Feed
+from app.schemas import FeedApprovalRequest
 from app.services.rss_service import RSSService
+from app.services.scoring_service import ScoringService
+from app.services.content_service import ContentService
+from app.services.brand_validation_service import BrandValidationService
 
 
 router = APIRouter(
@@ -25,6 +29,21 @@ def fetch_rss_feeds(
 ):
 
     result = RSSService.fetch_all(db)
+    inserted = int(result.get("inserted", 0))
+
+    if inserted > 0:
+        scoring = ScoringService.run(
+            db,
+            limit=min(inserted, 15),
+            only_unscored=True
+        )
+    else:
+        scoring = {
+            "scored": 0,
+            "shortlisted": []
+        }
+
+    result["scoring"] = scoring
 
     return {
         "message": "RSS fetched successfully",
@@ -38,17 +57,32 @@ def fetch_rss_feeds(
 
 @router.get("/")
 def get_all_feeds(
+    city: str | None = None,
+    status: str | None = None,
+    limit: int = 15,
     db: Session = Depends(get_db)
 ):
 
+    query = db.query(Feed)
+
+    if city:
+        query = query.filter(Feed.city == city)
+
+    if status:
+        query = query.filter(Feed.approval_status == status)
+
+    if limit < 1:
+        limit = 15
+
+    limit = min(limit, 100)
+
     feeds = (
-
-        db.query(Feed)
-
+        query
         .order_by(
+            Feed.relevance_score.desc(),
             Feed.created_at.desc()
         )
-
+        .limit(limit)
         .all()
 
     )
@@ -233,6 +267,7 @@ def get_source_feeds(
 @router.put("/{feed_id}/approve")
 def approve_feed(
     feed_id: int,
+    payload: FeedApprovalRequest = FeedApprovalRequest(),
     db: Session = Depends(get_db)
 ):
 
@@ -256,14 +291,37 @@ def approve_feed(
         )
 
     feed.approval_status = "approved"
+    feed.approved_by = payload.approved_by
+
+    if payload.editor_notes:
+        feed.editor_notes = payload.editor_notes
 
     db.commit()
 
     db.refresh(feed)
 
+    generation = ContentService.generate(
+        db,
+        feed_ids=[feed.id]
+    )
+    created_ids = generation.get("created", [])
+
+    validation = {
+        "validated": 0,
+        "results": []
+    }
+
+    if created_ids:
+        validation = BrandValidationService.run(
+            db,
+            content_ids=created_ids
+        )
+
     return {
         "message": "Feed approved",
-        "feed": feed
+        "feed": feed,
+        "content_generation": generation,
+        "brand_validation": validation,
     }
 
 

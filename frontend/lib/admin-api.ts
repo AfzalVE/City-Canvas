@@ -19,6 +19,26 @@ export type Feed = {
   created_at: string | null;
 };
 
+export type FeedApprovalResponse = {
+  message: string;
+  feed: Feed;
+  content_generation?: {
+    created?: number[];
+    skipped_existing?: number[];
+    feed_count?: number;
+  };
+  brand_validation?: {
+    validated?: number;
+    results?: Array<{
+      content_id: number;
+      status: string;
+      score: number;
+      issues: string[];
+      revised?: boolean;
+    }>;
+  };
+};
+
 export type GeneratedContent = {
   id: number;
   feed_id: number;
@@ -180,7 +200,7 @@ export function runRssFetch() {
 }
 
 export function approveFeed(feedId: number, editor_notes?: string) {
-  return adminFetch<Feed>(`/rss-feeds/${feedId}/approve`, {
+  return adminFetch<FeedApprovalResponse>(`/rss-feeds/${feedId}/approve`, {
     method: 'PUT',
     body: JSON.stringify({ approved_by: getAdminUser() || 'admin', editor_notes }),
   });
@@ -193,10 +213,10 @@ export function rejectFeed(feedId: number, rejection_reason?: string) {
   });
 }
 
-export function runScoring(limit = 10, city?: string) {
+export function runScoring(limit = 10, city?: string, only_unscored = true) {
   return adminFetch<{ message: string; result: Record<string, unknown> }>('/scoring/run', {
     method: 'POST',
-    body: JSON.stringify({ limit, city: city || null }),
+    body: JSON.stringify({ limit, city: city || null, only_unscored }),
   });
 }
 

@@ -43,28 +43,38 @@ class PublisherService:
                 .filter(
                     PublishLog.content_id == content.id,
                     PublishLog.platform == item.platform,
-                    PublishLog.status.in_(["queued", "manual_publish_required"])
+                    PublishLog.status.in_(
+                        ["queued", "manual_publish_required", "published"]
+                    )
                 )
                 .first()
             )
 
             if existing_log:
                 existing_log.scheduled_publish_time = item.scheduled_publish_time
+                existing_log.status = "published"
+                existing_log.published_at = datetime.utcnow()
+                existing_log.response_message = (
+                    "Auto-published after human approval. External platform "
+                    "API posting is not configured."
+                )
                 log = existing_log
             else:
                 log = PublishLog(
                     content_id=content.id,
                     platform=item.platform,
-                    status="manual_publish_required",
+                    status="published",
                     scheduled_publish_time=item.scheduled_publish_time,
+                    published_at=datetime.utcnow(),
                     response_message=(
-                        "Queued for manual publishing. Direct platform APIs "
-                        "are intentionally out of scope for phase 1."
+                        "Auto-published after human approval. External platform "
+                        "API posting is not configured."
                     ),
                 )
                 db.add(log)
                 db.flush()
 
+            content.status = "published"
             created_logs.append(log.id)
 
         db.commit()
@@ -74,12 +84,12 @@ class PublisherService:
             "publish_agent",
             "schedule",
             "completed",
-            f"Queued {len(created_logs)} publish items."
+            f"Auto-published {len(created_logs)} publish items."
         )
 
         return {
-            "queued": created_logs,
-            "mode": "approval_queue",
+            "published": created_logs,
+            "mode": "auto_publish_after_approval",
         }
 
     @staticmethod

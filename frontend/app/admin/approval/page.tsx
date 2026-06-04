@@ -57,7 +57,7 @@ export default function ApprovalPage() {
       if (publishAfterApproval) {
         await schedulePublish(id, item.platform, isoSchedule);
       }
-      setMessage(publishAfterApproval ? 'Content approved and queued for publishing.' : 'Content approved.');
+      setMessage(publishAfterApproval ? 'Content approved and published.' : 'Content approved.');
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to approve content');
@@ -81,17 +81,17 @@ export default function ApprovalPage() {
     }
   }
 
-  async function queueApproved(item: GeneratedContent) {
+  async function publishApproved(item: GeneratedContent) {
     setBusyId(item.id);
     setError('');
     setMessage('');
     try {
       const scheduled = scheduleAt[item.id] || toLocalDatetimeValue();
       await schedulePublish(item.id, item.platform, new Date(scheduled).toISOString());
-      setMessage('Approved content queued for publishing.');
+      setMessage('Approved content published.');
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to queue publishing');
+      setError(err instanceof Error ? err.message : 'Unable to publish content');
     } finally {
       setBusyId(null);
     }
@@ -105,7 +105,7 @@ export default function ApprovalPage() {
     <div className="p-8">
       <div className="mb-8">
         <h1 className="font-serif text-3xl text-forest-800 mb-1">Approval Queue</h1>
-        <p className="text-sm text-forest-500">{pending} posts awaiting human approval before publishing</p>
+        <p className="text-sm text-forest-500">{pending} posts awaiting human approval before automatic publishing</p>
       </div>
 
       {message && <div className="mb-4 rounded-lg bg-green-50 border border-green-100 px-4 py-3 text-sm text-green-700">{message}</div>}
@@ -149,9 +149,9 @@ export default function ApprovalPage() {
 
                   <div className="flex items-center gap-2 shrink-0">
                     {item.status === 'approved' ? (
-                      <button onClick={() => queueApproved(item)} disabled={busyId === item.id} className="btn-primary text-xs disabled:opacity-70">
+                      <button onClick={() => publishApproved(item)} disabled={busyId === item.id} className="btn-primary text-xs disabled:opacity-70">
                         {busyId === item.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                        Queue
+                        Publish
                       </button>
                     ) : item.status !== 'rejected' && (
                       <>
@@ -159,10 +159,10 @@ export default function ApprovalPage() {
                           onClick={() => approve(item.id, true)}
                           disabled={busyId === item.id || !canApprove}
                           className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
-                          title={canApprove ? 'Approve and queue for manual publishing' : 'Run brand check before approval'}
+                          title={canApprove ? 'Approve and publish automatically' : 'Brand validation must pass before approval'}
                         >
                           {busyId === item.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
-                          Approve & Queue
+                          Approve & Publish
                         </button>
                         <button
                           onClick={() => reject(item.id)}
@@ -218,7 +218,7 @@ export default function ApprovalPage() {
                     </div>
 
                     {!canApprove && item.status !== 'approved' && (
-                      <p className="text-xs text-amber-600 mt-3">Run Brand Check in Content Generator before approving this item.</p>
+                      <p className="text-xs text-amber-600 mt-3">Brand validation must pass before this item can be approved.</p>
                     )}
                   </div>
                 </div>
@@ -231,7 +231,7 @@ export default function ApprovalPage() {
           <div className="text-center py-16 text-forest-400">
             <CheckCircle className="w-12 h-12 mx-auto mb-3 opacity-30" />
             <p className="font-serif text-lg">No content waiting for approval</p>
-            <p className="text-sm mt-1">Generate content from approved articles to fill this queue.</p>
+            <p className="text-sm mt-1">Approve RSS articles to generate content automatically.</p>
           </div>
         )}
       </div>

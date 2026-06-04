@@ -7,8 +7,6 @@ import {
   Leaf,
   LayoutDashboard,
   Rss,
-  CheckSquare,
-  FileText,
   ThumbsUp,
   Send,
   Settings,
@@ -21,8 +19,6 @@ import { clearAdminSession, getAdminToken, getAdminUser, verifyAdminSession } fr
 const navItems = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
   { href: '/admin/rss', label: 'RSS Feeds', icon: Rss },
-  { href: '/admin/verification', label: 'Verification Queue', icon: CheckSquare },
-  { href: '/admin/content', label: 'Content Generator', icon: FileText },
   { href: '/admin/approval', label: 'Approval Queue', icon: ThumbsUp },
   { href: '/admin/publishing', label: 'Publishing', icon: Send },
   { href: '/admin/analytics', label: 'Analytics', icon: BarChart3 },

@@ -1,12 +1,33 @@
 from dotenv import load_dotenv
 import os
+from pathlib import Path
 
-load_dotenv()
+BACKEND_DIR = Path(__file__).resolve().parents[1]
+DEFAULT_DATABASE_URL = f"sqlite:///{(BACKEND_DIR / 'travel_agent.db').as_posix()}"
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "sqlite:///./travel_agent.db"
-)
+load_dotenv(BACKEND_DIR / ".env")
+
+
+def resolve_database_url(value: str | None):
+
+    if not value:
+        return DEFAULT_DATABASE_URL
+
+    sqlite_prefix = "sqlite:///"
+
+    if not value.startswith(sqlite_prefix):
+        return value
+
+    sqlite_path = value[len(sqlite_prefix):]
+
+    if not sqlite_path or Path(sqlite_path).is_absolute():
+        return value
+
+    resolved_path = (BACKEND_DIR / sqlite_path).resolve()
+    return f"{sqlite_prefix}{resolved_path.as_posix()}"
+
+
+DATABASE_URL = resolve_database_url(os.getenv("DATABASE_URL"))
 
 LLM_PROVIDER = os.getenv(
     "LLM_PROVIDER",

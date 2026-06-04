@@ -10,6 +10,19 @@ from app.services.scoring_agent_service import ScoringAgentService
 class ScoringService:
 
     @staticmethod
+    def _feed_recommendation(feed: Feed):
+
+        if not feed.scoring_breakdown:
+            return "review"
+
+        try:
+            breakdown = json.loads(feed.scoring_breakdown)
+        except json.JSONDecodeError:
+            return "review"
+
+        return breakdown.get("recommendation", "review")
+
+    @staticmethod
     def run(
         db: Session,
         limit: int = 10,
@@ -25,10 +38,13 @@ class ScoringService:
         if only_unscored:
             query = query.filter(Feed.scoring_reason.is_(None))
 
-        candidate_limit = min(
-            max(limit * 5, limit),
-            50
-        )
+        if only_unscored:
+            candidate_limit = limit
+        else:
+            candidate_limit = min(
+                max(limit * 5, limit),
+                50
+            )
         feeds = query.order_by(Feed.created_at.desc()).limit(candidate_limit).all()
         scored = []
 
@@ -78,7 +94,7 @@ class ScoringService:
                     "category": feed.category,
                     "relevance_score": feed.relevance_score,
                     "reasoning": feed.scoring_reason,
-                    "recommendation": recommendation,
+                    "recommendation": ScoringService._feed_recommendation(feed),
                     "source": feed.source_name,
                     "image_url": feed.image_url,
                 }

@@ -109,11 +109,14 @@ export default function RSSPage() {
     setError('');
     try {
       if (status === 'approved') {
-        await approveFeed(feedId);
+        const result = await approveFeed(feedId);
+        const created = result.content_generation?.created?.length ?? 0;
+        const validated = result.brand_validation?.validated ?? 0;
+        setMessage(`Article approved. Generated ${created} drafts and validated ${validated} for Approval Queue.`);
       } else {
         await rejectFeed(feedId);
+        setMessage('Article rejected.');
       }
-      setMessage(`Article ${status}.`);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : `Unable to ${status} article`);

@@ -73,7 +73,6 @@ class LLMService:
             return LLMService._extract_json(response.content)
         except Exception as exc:
             print(f"LangChain Groq request failed, using fallback: {exc}")
-            LLMService.provider_disabled = True
             return None
 
     @staticmethod
@@ -108,7 +107,6 @@ class LLMService:
             return LLMService._extract_json(response.content)
         except Exception as exc:
             print(f"LangChain Claude request failed, using fallback: {exc}")
-            LLMService.provider_disabled = True
             return None
 
     @staticmethod

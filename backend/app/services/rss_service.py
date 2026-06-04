@@ -5,10 +5,13 @@ from sqlalchemy.orm import Session
 
 from app.models import Feed
 
+ALLOWED_CITIES = {
+    "Amsterdam",
+    "Paris",
+}
 
-# ==========================================================
-# RSS SOURCES
-# ==========================================================
+MAX_FETCH_ARTICLES = 15
+MIN_RSS_RELEVANCE_SCORE = 35
 
 # ==========================================================
 # RSS SOURCES
@@ -267,7 +270,17 @@ EXCLUDED_KEYWORDS = [
     "covid",
     "pandemic",
     "breaking news",
-    "political crisis"
+    "political crisis",
+    "job cuts",
+    "layoff",
+    "layoffs",
+    "redundancy",
+    "profit",
+    "earnings",
+    "shares",
+    "football",
+    "traffic",
+    "accident",
 ]
 class RSSService:
 
@@ -408,7 +421,7 @@ class RSSService:
 
         score = RSSService.travel_score(text)
 
-        return score >= 10
+        return score >= MIN_RSS_RELEVANCE_SCORE
 
     # ======================================================
     # RELEVANCE SCORE
@@ -501,12 +514,14 @@ class RSSService:
         if detected_city:
             city = detected_city
 
-        # Only keep Amsterdam & Paris
+        if city not in ALLOWED_CITIES:
+            return None
 
-        if city not in [
-            "Amsterdam",
-            "Paris"
-        ]:
+        relevance_score = RSSService.calculate_relevance(
+            combined_text
+        )
+
+        if relevance_score < MIN_RSS_RELEVANCE_SCORE:
             return None
 
         category = (
@@ -548,11 +563,7 @@ class RSSService:
                 )
             ),
 
-            "relevance_score": (
-                RSSService.calculate_relevance(
-                    combined_text
-                )
-            )
+            "relevance_score": relevance_score
         }
 
     # ======================================================
@@ -564,6 +575,7 @@ class RSSService:
         db: Session
     ):
 
+        candidates = []
         inserted = 0
         skipped = 0
 
@@ -598,51 +610,7 @@ class RSSService:
                         skipped += 1
                         continue
 
-                    existing = (
-
-                        db.query(Feed)
-
-                        .filter(
-                            Feed.link ==
-                            article["link"]
-                        )
-
-                        .first()
-                    )
-
-                    if existing:
-
-                        skipped += 1
-                        continue
-
-                    feed_row = Feed(
-
-                        title=article["title"],
-
-                        link=article["link"],
-
-                        summary=article["summary"],
-
-                        author=article["author"],
-
-                        source_name=article["source_name"],
-
-                        image_url=article["image_url"],
-
-                        published_date=article["published_date"],
-
-                        city=article["city"],
-
-                        category=article["category"],
-
-                        relevance_score=article["relevance_score"],
-
-                        approval_status="pending"
-                    )
-
-                    db.add(feed_row)
-
-                    inserted += 1
+                    candidates.append(article)
 
             except Exception as e:
 
@@ -651,6 +619,72 @@ class RSSService:
                 )
 
                 print(str(e))
+
+        candidates = sorted(
+            candidates,
+            key=lambda article: article["relevance_score"],
+            reverse=True
+        )
+
+        seen_links = set()
+
+        for article in candidates:
+
+            if inserted >= MAX_FETCH_ARTICLES:
+                skipped += 1
+                continue
+
+            if article["link"] in seen_links:
+                skipped += 1
+                continue
+
+            seen_links.add(article["link"])
+
+            existing = (
+
+                db.query(Feed)
+
+                .filter(
+                    Feed.link ==
+                    article["link"]
+                )
+
+                .first()
+            )
+
+            if existing:
+
+                skipped += 1
+                continue
+
+            feed_row = Feed(
+
+                title=article["title"],
+
+                link=article["link"],
+
+                summary=article["summary"],
+
+                author=article["author"],
+
+                source_name=article["source_name"],
+
+                image_url=article["image_url"],
+
+                published_date=article["published_date"],
+
+                city=article["city"],
+
+                category=article["category"],
+
+                relevance_score=article["relevance_score"],
+
+                approval_status="pending"
+            )
+
+            db.add(feed_row)
+
+            inserted += 1
 
         try:
 
@@ -672,7 +706,13 @@ class RSSService:
 
             "inserted": inserted,
 
-            "skipped": skipped
+            "skipped": skipped,
+
+            "candidate_count": len(candidates),
+
+            "max_articles": MAX_FETCH_ARTICLES,
+
+            "min_relevance_score": MIN_RSS_RELEVANCE_SCORE
         }
 
     # ======================================================

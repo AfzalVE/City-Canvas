@@ -22,7 +22,8 @@ def run_scoring(
     result = ScoringService.run(
         db,
         limit=payload.limit,
-        city=payload.city
+        city=payload.city,
+        only_unscored=payload.only_unscored
     )
 
     return {

@@ -78,7 +78,6 @@ class ScoringAgentService:
             return ScoringAgentService._normalise_score(parsed)
         except Exception as exc:
             print(f"Scoring agent AI request failed, using fallback: {exc}")
-            ScoringAgentService.provider_disabled = True
             return None
 
     @staticmethod

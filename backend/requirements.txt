@@ -4,3 +4,8 @@ sqlalchemy
 pydantic
 python-dotenv
 cors
+langchain-core
+langchain-groq
+langchain-anthropic
+feedparser
+APScheduler
