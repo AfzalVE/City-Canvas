@@ -1,142 +1,122 @@
 'use client';
 
-import { useState } from 'react';
-import { CheckCircle, XCircle, ExternalLink, ChevronDown, ChevronUp, Star, Clock, Globe, Search } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { CheckCircle, ChevronDown, ChevronUp, ExternalLink, Globe, Loader2, Search, Star, XCircle } from 'lucide-react';
+import { Feed, approveFeed, fetchFeeds, rejectFeed, runScoring } from '@/lib/admin-api';
 
-type Article = {
-  id: string;
-  title: string;
-  source: string;
-  url: string;
-  description: string;
-  city: string;
-  category: string;
-  relevance_score: number;
-  published_at: string;
-  fetched_at: string;
-  status: 'pending_review' | 'approved' | 'rejected';
-  reviewer_notes: string;
-};
-
-const mockArticles: Article[] = [
-  {
-    id: '1',
-    title: 'Amsterdam\'s Hidden Museum Quarter: Beyond the Rijksmuseum',
-    source: 'iAmsterdam',
-    url: 'https://www.iamsterdam.com/hidden-museum-quarter',
-    description: 'Discover lesser-known museums in Amsterdam\'s prestigious museum district, from the Stedelijk\'s modern art to the intriguing Moco Museum just steps away.',
-    city: 'Amsterdam',
-    category: 'Museums',
-    relevance_score: 92,
-    published_at: '2026-06-03T14:00:00',
-    fetched_at: '2026-06-04T06:00:00',
-    status: 'pending_review',
-    reviewer_notes: '',
-  },
-  {
-    id: '2',
-    title: 'Best Neighbourhood Bistros in the 11th Arrondissement',
-    source: 'Paris Update',
-    url: 'https://parisupdate.com/bistros-11th',
-    description: 'The 11th arrondissement has quietly become Paris\'s most exciting dining neighbourhood. Here are seven bistros that locals actually love, without tourist markups.',
-    city: 'Paris',
-    category: 'Food',
-    relevance_score: 88,
-    published_at: '2026-06-02T10:00:00',
-    fetched_at: '2026-06-04T06:00:00',
-    status: 'pending_review',
-    reviewer_notes: '',
-  },
-  {
-    id: '3',
-    title: 'Summer Night Openings at the Louvre',
-    source: 'Paris Tourist Office',
-    url: 'https://en.parisinfo.com/louvre-nights',
-    description: 'The Louvre is opening its doors on Friday evenings until midnight throughout July and August, offering a quieter, more intimate experience of the world\'s most visited museum.',
-    city: 'Paris',
-    category: 'Events',
-    relevance_score: 95,
-    published_at: '2026-06-01T09:00:00',
-    fetched_at: '2026-06-04T06:00:00',
-    status: 'pending_review',
-    reviewer_notes: '',
-  },
-  {
-    id: '4',
-    title: 'Keukenhof Gardens 2026: Everything You Need to Know',
-    source: 'DutchNews.nl',
-    url: 'https://dutchnews.nl/keukenhof-2026',
-    description: 'The world\'s most beautiful spring garden opens for its 77th season with new tulip varieties, extended hours, and a special night-lighting event in April.',
-    city: 'Amsterdam',
-    category: 'Culture',
-    relevance_score: 85,
-    published_at: '2026-05-30T11:00:00',
-    fetched_at: '2026-06-04T08:00:00',
-    status: 'pending_review',
-    reviewer_notes: '',
-  },
-  {
-    id: '5',
-    title: 'New Budget Airline Route: London to Paris',
-    source: 'Travel News Daily',
-    url: '#',
-    description: 'A new low-cost carrier is launching a daily London–Paris route from August 2026, with fares starting at £19 one way.',
-    city: 'Paris',
-    category: 'Travel',
-    relevance_score: 34,
-    published_at: '2026-06-01T08:00:00',
-    fetched_at: '2026-06-04T08:00:00',
-    status: 'pending_review',
-    reviewer_notes: '',
-  },
-];
+type Filter = 'all' | 'pending' | 'approved' | 'rejected';
 
 export default function VerificationPage() {
-  const [articles, setArticles] = useState<Article[]>(mockArticles);
-  const [expanded, setExpanded] = useState<string | null>(null);
-  const [notes, setNotes] = useState<Record<string, string>>({});
-  const [filter, setFilter] = useState<'all' | 'pending_review' | 'approved' | 'rejected'>('pending_review');
+  const [articles, setArticles] = useState<Feed[]>([]);
+  const [expanded, setExpanded] = useState<number | null>(null);
+  const [notes, setNotes] = useState<Record<number, string>>({});
+  const [filter, setFilter] = useState<Filter>('pending');
   const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [busyId, setBusyId] = useState<number | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
 
-  function setStatus(id: string, status: 'approved' | 'rejected') {
-    setArticles((as) =>
-      as.map((a) => (a.id === id ? { ...a, status, reviewer_notes: notes[id] || '' } : a))
-    );
+  async function load() {
+    setError('');
+    setLoading(true);
+    try {
+      const data = await fetchFeeds({ status: filter === 'all' ? undefined : filter });
+      setArticles(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to load verification queue');
+    } finally {
+      setLoading(false);
+    }
   }
 
-  const filtered = articles.filter((a) => {
-    const matchFilter = filter === 'all' || a.status === filter;
-    const matchSearch = !search || a.title.toLowerCase().includes(search.toLowerCase()) || a.source.toLowerCase().includes(search.toLowerCase());
-    return matchFilter && matchSearch;
-  });
+  useEffect(() => {
+    load();
+  }, [filter]);
 
-  const pendingCount = articles.filter((a) => a.status === 'pending_review').length;
+  async function updateStatus(feedId: number, status: 'approved' | 'rejected') {
+    setBusyId(feedId);
+    setError('');
+    setMessage('');
+    try {
+      if (status === 'approved') {
+        await approveFeed(feedId, notes[feedId]);
+      } else {
+        await rejectFeed(feedId, notes[feedId]);
+      }
+      setMessage(`Article ${status}.`);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : `Unable to ${status} article`);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function checkArticles() {
+    setChecking(true);
+    setError('');
+    setMessage('');
+    try {
+      const result = await runScoring(25);
+      setMessage(result.message);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Checking failed');
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  const filtered = useMemo(() => {
+    const value = search.toLowerCase();
+    return articles.filter((article) => {
+      return (
+        !value ||
+        article.title.toLowerCase().includes(value) ||
+        (article.source_name || '').toLowerCase().includes(value)
+      );
+    });
+  }, [articles, search]);
+
+  const pendingCount = articles.filter((article) => article.approval_status === 'pending').length;
 
   return (
     <div className="p-8">
-      <div className="mb-8">
-        <h1 className="font-serif text-3xl text-forest-800 mb-1">Verification Queue</h1>
-        <p className="text-sm text-forest-500">{pendingCount} articles awaiting your review</p>
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+        <div>
+          <h1 className="font-serif text-3xl text-forest-800 mb-1">Verification Queue</h1>
+          <p className="text-sm text-forest-500">{pendingCount} articles awaiting review</p>
+        </div>
+        <button onClick={checkArticles} disabled={checking} className="btn-secondary text-xs disabled:opacity-70">
+          {checking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Star className="w-4 h-4" />}
+          Run Checking
+        </button>
       </div>
 
-      {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-3 mb-6">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             placeholder="Search articles..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(event) => setSearch(event.target.value)}
             className="pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-forest-400 w-64"
           />
         </div>
         <div className="flex gap-2">
-          {([['all', 'All'], ['pending_review', 'Pending'], ['approved', 'Approved'], ['rejected', 'Rejected']] as const).map(([val, label]) => (
+          {([
+            ['all', 'All'],
+            ['pending', 'Pending'],
+            ['approved', 'Approved'],
+            ['rejected', 'Rejected'],
+          ] as const).map(([value, label]) => (
             <button
-              key={val}
-              onClick={() => setFilter(val)}
+              key={value}
+              onClick={() => setFilter(value)}
               className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                filter === val ? 'bg-forest-600 text-cream-100' : 'bg-white text-forest-600 border border-gray-200 hover:bg-gray-50'
+                filter === value ? 'bg-forest-600 text-cream-100' : 'bg-white text-forest-600 border border-gray-200 hover:bg-gray-50'
               }`}
             >
               {label}
@@ -145,63 +125,66 @@ export default function VerificationPage() {
         </div>
       </div>
 
-      {/* Articles */}
+      {message && <div className="mb-4 rounded-lg bg-green-50 border border-green-100 px-4 py-3 text-sm text-green-700">{message}</div>}
+      {error && <div className="mb-4 rounded-lg bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-700">{error}</div>}
+
       <div className="space-y-3">
-        {filtered.map((article) => (
+        {loading ? (
+          <div className="text-center py-16 text-forest-400">
+            <Loader2 className="w-6 h-6 animate-spin mx-auto mb-3" />
+            Loading articles
+          </div>
+        ) : filtered.map((article) => (
           <div
             key={article.id}
             className={`bg-white rounded-xl border shadow-sm overflow-hidden transition-all ${
-              article.status === 'approved' ? 'border-green-200' : article.status === 'rejected' ? 'border-red-200' : 'border-gray-200'
+              article.approval_status === 'approved' ? 'border-green-200' : article.approval_status === 'rejected' ? 'border-red-200' : 'border-gray-200'
             }`}
           >
-            {/* Header */}
             <div className="p-5">
               <div className="flex items-start gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-2 mb-2">
                     <span className={`tag text-xs ${article.city === 'Amsterdam' ? 'bg-blue-50 text-blue-700' : 'bg-rose-50 text-rose-700'}`}>
-                      {article.city}
+                      {article.city || 'Unknown'}
                     </span>
-                    <span className="tag-forest text-xs">{article.category}</span>
+                    <span className="tag-forest text-xs">{article.category || 'General'}</span>
                     <span className="text-xs text-gray-400 flex items-center gap-1">
-                      <Globe className="w-3 h-3" />{article.source}
+                      <Globe className="w-3 h-3" />{article.source_name || 'RSS source'}
                     </span>
                   </div>
                   <h3 className="font-serif text-base text-forest-800 mb-1">{article.title}</h3>
-                  <div className="flex items-center gap-3 text-xs text-gray-400">
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {new Date(article.published_at).toLocaleDateString('en-GB')}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Star className="w-3 h-3 text-gold-500" />
-                      <span>Relevance: </span>
-                      <span className={`font-semibold ${article.relevance_score >= 70 ? 'text-green-600' : article.relevance_score >= 50 ? 'text-amber-600' : 'text-red-500'}`}>
-                        {article.relevance_score}%
-                      </span>
-                    </div>
+                  <div className="flex items-center gap-1 text-xs text-gray-400">
+                    <Star className="w-3 h-3 text-gold-500" />
+                    <span>Relevance:</span>
+                    <span className={`font-semibold ${(article.relevance_score || 0) >= 70 ? 'text-green-600' : (article.relevance_score || 0) >= 50 ? 'text-amber-600' : 'text-red-500'}`}>
+                      {Math.round(article.relevance_score || 0)}
+                    </span>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
-                  {article.status === 'pending_review' ? (
+                  {article.approval_status === 'pending' ? (
                     <>
                       <button
-                        onClick={() => setStatus(article.id, 'approved')}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-xs font-medium transition-colors"
+                        onClick={() => updateStatus(article.id, 'approved')}
+                        disabled={busyId === article.id}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-xs font-medium transition-colors disabled:opacity-60"
                       >
-                        <CheckCircle className="w-3.5 h-3.5" /> Approve
+                        {busyId === article.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
+                        Approve
                       </button>
                       <button
-                        onClick={() => setStatus(article.id, 'rejected')}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-medium transition-colors"
+                        onClick={() => updateStatus(article.id, 'rejected')}
+                        disabled={busyId === article.id}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-medium transition-colors disabled:opacity-60"
                       >
                         <XCircle className="w-3.5 h-3.5" /> Reject
                       </button>
                     </>
                   ) : (
-                    <span className={article.status === 'approved' ? 'status-approved' : 'status-rejected'}>
-                      {article.status === 'approved' ? 'Approved' : 'Rejected'}
+                    <span className={article.approval_status === 'approved' ? 'status-approved' : 'status-rejected'}>
+                      {article.approval_status}
                     </span>
                   )}
                   <button
@@ -214,12 +197,11 @@ export default function VerificationPage() {
               </div>
             </div>
 
-            {/* Expanded */}
             {expanded === article.id && (
               <div className="border-t border-gray-100 p-5 bg-gray-50 space-y-4">
-                <p className="text-sm text-forest-600 leading-relaxed">{article.description}</p>
+                <p className="text-sm text-forest-600 leading-relaxed">{article.summary || 'No summary was provided by this RSS item.'}</p>
                 <a
-                  href={article.url}
+                  href={article.link}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 text-xs text-forest-600 hover:text-forest-800 font-medium"
@@ -229,8 +211,8 @@ export default function VerificationPage() {
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">Reviewer Notes</label>
                   <textarea
-                    value={notes[article.id] || ''}
-                    onChange={(e) => setNotes((n) => ({ ...n, [article.id]: e.target.value }))}
+                    value={notes[article.id] || article.editor_notes || ''}
+                    onChange={(event) => setNotes((current) => ({ ...current, [article.id]: event.target.value }))}
                     placeholder="Add notes about this article..."
                     rows={2}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-forest-400 resize-none"
@@ -241,11 +223,11 @@ export default function VerificationPage() {
           </div>
         ))}
 
-        {filtered.length === 0 && (
+        {!loading && filtered.length === 0 && (
           <div className="text-center py-16 text-forest-400">
             <CheckCircle className="w-12 h-12 mx-auto mb-3 opacity-30" />
             <p className="font-serif text-lg">No articles found</p>
-            <p className="text-sm mt-1">Change your filters or check back after the next RSS fetch.</p>
+            <p className="text-sm mt-1">Change your filters or run RSS collection.</p>
           </div>
         )}
       </div>

@@ -1,7 +1,8 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Leaf,
   LayoutDashboard,
@@ -13,7 +14,9 @@ import {
   Settings,
   ChevronRight,
   BarChart3,
+  LogOut,
 } from 'lucide-react';
+import { clearAdminSession, getAdminToken, getAdminUser, verifyAdminSession } from '@/lib/admin-api';
 
 const navItems = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
@@ -28,6 +31,68 @@ const navItems = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [checking, setChecking] = useState(true);
+  const [authorized, setAuthorized] = useState(false);
+  const [username, setUsername] = useState<string | null>(null);
+
+  const isLoginPage = pathname === '/admin/login';
+
+  useEffect(() => {
+    if (isLoginPage) {
+      setChecking(false);
+      setAuthorized(false);
+      return;
+    }
+
+    let mounted = true;
+    setChecking(true);
+    setAuthorized(false);
+
+    if (!getAdminToken()) {
+      clearAdminSession();
+      router.replace('/admin/login');
+      setChecking(false);
+      return;
+    }
+
+    verifyAdminSession()
+      .then((admin) => {
+        if (!mounted) return;
+        setUsername(admin.username || getAdminUser());
+        setAuthorized(true);
+        setChecking(false);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setAuthorized(false);
+        setChecking(false);
+        router.replace('/admin/login');
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [isLoginPage, router]);
+
+  function logout() {
+    clearAdminSession();
+    window.location.href = '/admin/login';
+  }
+
+  if (isLoginPage) {
+    return <>{children}</>;
+  }
+
+  if (checking || !authorized) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-sm text-forest-500">
+          {checking ? 'Checking admin access...' : 'Redirecting to admin login...'}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -65,7 +130,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </nav>
 
         {/* Footer */}
-        <div className="p-4 border-t border-gray-100">
+        <div className="p-4 border-t border-gray-100 space-y-3">
+          <div className="text-xs text-forest-500">
+            Signed in as <span className="font-medium text-forest-700">{username || 'admin'}</span>
+          </div>
+          <button
+            onClick={logout}
+            className="flex w-full items-center gap-2 text-xs text-forest-500 hover:text-red-600 transition-colors"
+          >
+            <LogOut className="w-3 h-3" />
+            Sign out
+          </button>
           <Link
             href="/"
             className="flex items-center gap-2 text-xs text-forest-500 hover:text-forest-700 transition-colors"

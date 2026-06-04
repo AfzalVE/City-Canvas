@@ -3,15 +3,18 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const backendUrl = (
+      process.env.BACKEND_API_URL ||
+      process.env.NEXT_PUBLIC_BACKEND_API_URL ||
+      'http://127.0.0.1:8000'
+    ).replace(/\/$/, '');
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return NextResponse.json({ error: 'Authorization required' }, { status: 401 });
     }
 
-    const res = await fetch(`${supabaseUrl}/functions/v1/content-generator`, {
+    const res = await fetch(`${backendUrl}/content/generate`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -21,7 +24,7 @@ export async function POST(req: NextRequest) {
     });
 
     const data = await res.json();
-    return NextResponse.json(data, { status: res.ok ? 200 : 500 });
+    return NextResponse.json(data, { status: res.status });
   } catch {
     return NextResponse.json({ error: 'Content generation failed' }, { status: 500 });
   }
