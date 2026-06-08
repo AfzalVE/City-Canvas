@@ -79,6 +79,7 @@ def ensure_database_schema():
         "generated_content": {
             "platform": "VARCHAR(100) DEFAULT 'blog'",
             "hashtags": "TEXT",
+            "featured_image_url": "VARCHAR(1000)",
             "photography_direction": "TEXT",
             "source_url": "VARCHAR(1000)",
             "suggested_post_time": "VARCHAR(100)",

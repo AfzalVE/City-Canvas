@@ -5,8 +5,9 @@ pydantic
 python-dotenv
 cors
 langchain-core
-langchain-groq
+langchain-openai
 langchain-anthropic
+openai
 feedparser
 APScheduler
 psycopg[binary]

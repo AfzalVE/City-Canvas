@@ -51,6 +51,9 @@ export type GeneratedContent = {
   seo_description: string | null;
   keywords: string | null;
   hashtags: string | null;
+  featured_image_prompt: string | null;
+  featured_image_url: string | null;
+  source_image_url: string | null;
   photography_direction: string | null;
   source_url: string | null;
   suggested_post_time: string | null;
@@ -96,6 +99,13 @@ const USER_KEY = 'neem_admin_user';
 const API_BASE_URL = (
   process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://127.0.0.1:8000'
 ).replace(/\/$/, '');
+
+export function resolveBackendUrl(url?: string | null) {
+  if (!url) return '';
+  if (/^(https?:|data:|blob:)/.test(url)) return url;
+  if (url.startsWith('/')) return `${API_BASE_URL}${url}`;
+  return url;
+}
 
 export function getAdminToken() {
   if (typeof window === 'undefined') return null;
@@ -239,6 +249,13 @@ export function runBrandValidation(contentIds?: number[]) {
   return adminFetch<{ message: string; result: Record<string, unknown> }>('/brand-validation/run', {
     method: 'POST',
     body: JSON.stringify({ content_ids: contentIds && contentIds.length > 0 ? contentIds : null }),
+  });
+}
+
+export function generateContentImage(contentId: number) {
+  return adminFetch<{ message: string; content: GeneratedContent }>(`/content/${contentId}/generate-image`, {
+    method: 'POST',
+    body: JSON.stringify({}),
   });
 }
 

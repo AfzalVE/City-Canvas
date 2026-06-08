@@ -31,14 +31,19 @@ DATABASE_URL = resolve_database_url(os.getenv("DATABASE_URL"))
 
 LLM_PROVIDER = os.getenv(
     "LLM_PROVIDER",
-    "groq"
+    "openai"
 ).lower()
 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-GROQ_MODEL = os.getenv(
-    "GROQ_MODEL",
-    "llama-3.3-70b-versatile"
+OPENAI_MODEL = os.getenv(
+    "OPENAI_MODEL",
+    "gpt-5.4"
+)
+
+OPENAI_IMAGE_MODEL = os.getenv(
+    "OPENAI_IMAGE_MODEL",
+    "gpt-image-1"
 )
 
 CLAUDE_MODEL = os.getenv(

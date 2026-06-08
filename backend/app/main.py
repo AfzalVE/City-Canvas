@@ -1,8 +1,9 @@
-from app.config import APP_NAME, FRONTEND_URLS
+from app.config import APP_NAME
+from app.config import BACKEND_DIR
+from app.config import FRONTEND_URLS
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
-from app.config import APP_NAME
+from fastapi.staticfiles import StaticFiles
 
 from app.database import Base
 from app.database import ensure_database_schema
@@ -43,6 +44,14 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+
+media_dir = BACKEND_DIR / "generated_media"
+media_dir.mkdir(parents=True, exist_ok=True)
+app.mount(
+    "/media",
+    StaticFiles(directory=media_dir),
+    name="media"
 )
 
 # =====================================

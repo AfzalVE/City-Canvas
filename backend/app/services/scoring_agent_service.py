@@ -6,9 +6,9 @@ from email.utils import parsedate_to_datetime
 
 from app.config import CLAUDE_API_KEY
 from app.config import CLAUDE_MODEL
-from app.config import GROQ_API_KEY
-from app.config import GROQ_MODEL
 from app.config import LLM_PROVIDER
+from app.config import OPENAI_API_KEY
+from app.config import OPENAI_MODEL
 
 
 SCORING_SYSTEM_PROMPT = """
@@ -69,7 +69,7 @@ class ScoringAgentService:
             if LLM_PROVIDER == "claude":
                 raw = ScoringAgentService._invoke_claude(prompt)
             else:
-                raw = ScoringAgentService._invoke_groq(prompt)
+                raw = ScoringAgentService._invoke_openai(prompt)
 
             if not raw:
                 return None
@@ -111,18 +111,18 @@ Return ONLY this JSON object with no other text:
 """.strip()
 
     @staticmethod
-    def _invoke_groq(prompt: str):
+    def _invoke_openai(prompt: str):
 
-        if not GROQ_API_KEY:
+        if not OPENAI_API_KEY:
             return None
 
         from langchain_core.messages import HumanMessage
         from langchain_core.messages import SystemMessage
-        from langchain_groq import ChatGroq
+        from langchain_openai import ChatOpenAI
 
-        llm = ChatGroq(
-            api_key=GROQ_API_KEY,
-            model=GROQ_MODEL,
+        llm = ChatOpenAI(
+            api_key=OPENAI_API_KEY,
+            model=OPENAI_MODEL,
             temperature=0,
             max_tokens=700,
         )

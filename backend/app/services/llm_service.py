@@ -3,9 +3,35 @@ import re
 
 from app.config import CLAUDE_API_KEY
 from app.config import CLAUDE_MODEL
-from app.config import GROQ_API_KEY
-from app.config import GROQ_MODEL
 from app.config import LLM_PROVIDER
+from app.config import OPENAI_API_KEY
+from app.config import OPENAI_MODEL
+
+
+PLATFORM_WORD_LIMITS = {
+    "instagram": (150, 220),
+    "linkedin": (250, 350),
+    "newsletter": (300, 500),
+    "blog": (700, 900),
+}
+
+PLATFORM_SPECS = {
+    "instagram": (
+        "150-220 words, sensory present-tense caption, three hashtag sets, "
+        "one quiet call to action."
+    ),
+    "linkedin": (
+        "250-350 words, thoughtful professional post about a culture or "
+        "travel trend."
+    ),
+    "newsletter": (
+        "300-500 words, warm editorial dispatch, no exclamation marks."
+    ),
+    "blog": (
+        "700-900 words, SEO-considered guide or essay with practical details, "
+        "no exclamation marks."
+    ),
+}
 
 
 class LLMService:
@@ -33,8 +59,8 @@ class LLMService:
         if LLMService.provider_disabled:
             return None
 
-        if LLM_PROVIDER == "groq":
-            return LLMService._complete_groq_json(prompt, max_tokens)
+        if LLM_PROVIDER == "openai":
+            return LLMService._complete_openai_json(prompt, max_tokens)
 
         if LLM_PROVIDER == "claude":
             return LLMService._complete_claude_json(prompt, max_tokens)
@@ -42,19 +68,19 @@ class LLMService:
         return None
 
     @staticmethod
-    def _complete_groq_json(prompt: str, max_tokens: int):
+    def _complete_openai_json(prompt: str, max_tokens: int):
 
-        if not GROQ_API_KEY:
+        if not OPENAI_API_KEY:
             return None
 
         try:
             from langchain_core.messages import HumanMessage
             from langchain_core.messages import SystemMessage
-            from langchain_groq import ChatGroq
+            from langchain_openai import ChatOpenAI
 
-            llm = ChatGroq(
-                api_key=GROQ_API_KEY,
-                model=GROQ_MODEL,
+            llm = ChatOpenAI(
+                api_key=OPENAI_API_KEY,
+                model=OPENAI_MODEL,
                 temperature=0.3,
                 max_tokens=max_tokens,
             )
@@ -72,7 +98,7 @@ class LLMService:
 
             return LLMService._extract_json(response.content)
         except Exception as exc:
-            print(f"LangChain Groq request failed, using fallback: {exc}")
+            print(f"LangChain OpenAI request failed, using fallback: {exc}")
             return None
 
     @staticmethod
@@ -110,130 +136,25 @@ class LLMService:
             return None
 
     @staticmethod
-    def score_feed(feed):
-
-        prompt = f"""
-You are an editor for Neem Journeys.
-
-Evaluate the article against:
-
-1. Brand Alignment (35)
-2. Audience Relevance (20)
-3. Originality (15)
-4. Timeliness (10)
-5. Visual Potential (10)
-6. Content Potential (5)
-7. Source Authority (5)
-
-Audience:
-Affluent travellers aged 35-55 interested in culture, food, architecture,
-art, design, neighbourhood life and slow travel.
-
-Return JSON only.
-
-{{
-  "brand_alignment": 0-35,
-  "audience_relevance": 0-20,
-  "originality": 0-15,
-  "timeliness": 0-10,
-  "visual_potential": 0-10,
-  "content_potential": 0-5,
-  "source_authority": 0-5,
-  "total": 0-100,
-  "reasoning": "short explanation"
-}}
-
-Article:
-Title: {feed.title}
-Summary: {feed.summary or ""}
-City: {feed.city or ""}
-Source: {feed.source_name or ""}
-Published: {feed.published_date or ""}
-URL: {feed.link}
-"""
-
-        response = LLMService.complete_json(prompt, max_tokens=900)
-
-        if response:
-            return LLMService._normalise_score_response(response, feed)
-
-        return LLMService._fallback_score(feed)
-
-    @staticmethod
-    def _normalise_score_response(response, feed):
-
-        def bounded(value, maximum):
-            try:
-                numeric = float(value)
-            except (TypeError, ValueError):
-                numeric = 0
-
-            return max(0, min(maximum, numeric))
-
-        brand_alignment = bounded(
-            response.get("brand_alignment", response.get("brand_fit", 0)),
-            35
-        )
-        audience = bounded(response.get("audience_relevance", 0), 20)
-        originality = bounded(response.get("originality", 0), 15)
-        timeliness = bounded(response.get("timeliness", 0), 10)
-        visual = bounded(response.get("visual_potential", 0), 10)
-        content = bounded(response.get("content_potential", 0), 5)
-        authority = bounded(response.get("source_authority", 0), 5)
-        calculated_total = (
-            brand_alignment
-            + audience
-            + originality
-            + timeliness
-            + visual
-            + content
-            + authority
-        )
-        total = bounded(
-            response.get("total", response.get("score", calculated_total)),
-            100
-        )
-
-        return {
-            "total_score": float(total),
-            "factor_scores": {
-                "brand_alignment": brand_alignment,
-                "audience_relevance": audience,
-                "originality": originality,
-                "timeliness": timeliness,
-                "visual_potential": visual,
-                "content_potential": content,
-                "source_authority": authority,
-            },
-            "reason": response.get(
-                "reasoning",
-                response.get("reason", "")
-            ),
-            "suggested_category": response.get(
-                "suggested_category",
-                feed.category or "General"
-            ),
-            "confidence": float(response.get("confidence", 0.8)),
-        }
-
-    @staticmethod
     def generate_platform_content(feed, platform: str):
 
-        platform_specs = {
-            "instagram": "150-220 words, sensory present-tense caption, three hashtag sets, one quiet call to action.",
-            "linkedin": "250-350 words, thoughtful professional post about a culture or travel trend.",
-            "newsletter": "300-500 words, warm editorial dispatch, no exclamation marks.",
-            "blog": "700-900 words, SEO-considered guide or essay with practical details, no exclamation marks.",
-        }
+        minimum_words, maximum_words = PLATFORM_WORD_LIMITS[platform]
 
         prompt = f"""
-Create {platform} content for Neem Journeys.
+Create {platform} content for Neem Journeys from the approved RSS feed story.
 
-Brand voice: measured, unhurried, curious, culturally literate, never shouty.
+Brand voice:
+- Measured, unhurried, curious and culturally literate.
+- Written for affluent travellers aged 35-55 who care about culture, food,
+  architecture, art, design, neighbourhood life and slow travel.
+- Editorial and observant, never promotional, rushed or shouty.
+
 Rules:
 - Always refer to the brand as "Neem Journeys".
 - Use European English spelling.
 - Avoid superlatives such as best, greatest, most incredible.
+- Do not invent facts beyond the RSS source material and editor notes.
+- The content field must be between {minimum_words} and {maximum_words} words.
 - Include a photography_direction field.
 - Include source attribution.
 
@@ -241,13 +162,15 @@ Return strict JSON only with:
 headline, content, excerpt, seo_title, seo_description, keywords array, hashtags array,
 photography_direction, suggested_post_time.
 
-Platform spec: {platform_specs[platform]}
+Platform spec: {PLATFORM_SPECS[platform]}
 
-Source story:
+RSS source story:
 Title: {feed.title}
 Summary: {feed.summary or ""}
 City: {feed.city or ""}
 Category: {feed.category or ""}
+Source: {feed.source_name or ""}
+Published: {feed.published_date or ""}
 URL: {feed.link}
 Editor notes: {feed.editor_notes or ""}
 """
@@ -255,9 +178,96 @@ Editor notes: {feed.editor_notes or ""}
         response = LLMService.complete_json(prompt, max_tokens=2600)
 
         if response:
-            return response
+            return LLMService._enforce_platform_word_limit(
+                response,
+                platform,
+                prompt
+            )
 
         return LLMService._fallback_content(feed, platform)
+
+    @staticmethod
+    def _word_count(text: str):
+
+        return len(re.findall(r"\b\w+\b", text or ""))
+
+    @staticmethod
+    def _enforce_platform_word_limit(response, platform: str, source_prompt: str):
+
+        content = response.get("content", "")
+        minimum_words, maximum_words = PLATFORM_WORD_LIMITS[platform]
+        word_count = LLMService._word_count(content)
+
+        if minimum_words <= word_count <= maximum_words:
+            return response
+
+        repaired = LLMService._repair_platform_word_limit(
+            response,
+            platform,
+            source_prompt,
+            word_count
+        )
+
+        if repaired:
+            repaired_count = LLMService._word_count(repaired.get("content", ""))
+
+            if minimum_words <= repaired_count <= maximum_words:
+                return repaired
+
+            response = repaired
+
+        if LLMService._word_count(response.get("content", "")) > maximum_words:
+            response["content"] = LLMService._trim_to_word_limit(
+                response.get("content", ""),
+                maximum_words
+            )
+            response["excerpt"] = response.get("excerpt") or response["content"][:240]
+            response["seo_description"] = (
+                response.get("seo_description")
+                or response["content"][:300]
+            )
+
+        return response
+
+    @staticmethod
+    def _repair_platform_word_limit(
+        response,
+        platform: str,
+        source_prompt: str,
+        actual_words: int
+    ):
+
+        minimum_words, maximum_words = PLATFORM_WORD_LIMITS[platform]
+        repair_prompt = f"""
+The previous {platform} draft had {actual_words} words in the content field.
+Revise it so the content field is between {minimum_words} and {maximum_words}
+words. Keep the same Neem Journeys brand voice, source attribution, European
+English, JSON schema and factual limits.
+
+Original instruction:
+{source_prompt}
+
+Previous JSON:
+{json.dumps(response)}
+"""
+
+        return LLMService.complete_json(repair_prompt, max_tokens=2200)
+
+    @staticmethod
+    def _trim_to_word_limit(text: str, maximum_words: int):
+
+        matches = list(re.finditer(r"\b\w+\b", text or ""))
+
+        if len(matches) <= maximum_words:
+            return text
+
+        end_index = matches[maximum_words - 1].end()
+        trimmed = text[:end_index].rstrip(" ,;:-")
+
+        if not trimmed.endswith((".", "?", "!")):
+            trimmed = f"{trimmed}."
+
+        return trimmed
 
     @staticmethod
     def revise_content(content, issues: list[str]):
@@ -325,68 +335,6 @@ Current draft:
             "photography_direction": content.photography_direction
             or "Editorial destination photography with natural light and local detail.",
             "suggested_post_time": content.suggested_post_time,
-        }
-
-    @staticmethod
-    def _fallback_score(feed):
-
-        text = f"{feed.title} {feed.summary or ''}".lower()
-        brand_terms = [
-            "art",
-            "culture",
-            "museum",
-            "food",
-            "restaurant",
-            "design",
-            "architecture",
-            "travel",
-            "neighbourhood",
-            "neighborhood",
-            "exhibition",
-            "cafe",
-        ]
-        city_terms = ["amsterdam", "paris", "netherlands", "france"]
-
-        brand_alignment = min(
-            35,
-            sum(text.count(term) for term in brand_terms) * 7
-        )
-        audience = min(20, sum(text.count(term) for term in brand_terms) * 4)
-        timeliness = 10 if feed.published_date else 6
-        visual = 10 if feed.image_url else 6
-        originality = 15 if feed.source_name else 10
-        content = 5 if len(text) > 180 else 3
-        authority = 5 if feed.source_name else 3
-        city_bonus = 4 if any(term in text for term in city_terms) else 0
-        total = min(
-            100,
-            brand_alignment
-            + audience
-            + originality
-            + timeliness
-            + visual
-            + content
-            + authority
-            + city_bonus
-        )
-
-        return {
-            "total_score": float(total),
-            "factor_scores": {
-                "brand_alignment": float(brand_alignment),
-                "audience_relevance": float(audience),
-                "originality": float(originality),
-                "timeliness": float(timeliness),
-                "visual_potential": float(visual),
-                "content_potential": float(content),
-                "source_authority": float(authority),
-            },
-            "reason": (
-                "Fallback heuristic score based on Neem Journeys brand fit, "
-                "audience relevance, cultural keywords, image availability and source detail."
-            ),
-            "suggested_category": feed.category or "General",
-            "confidence": 0.55,
         }
 
     @staticmethod

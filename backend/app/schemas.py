@@ -96,6 +96,8 @@ class GeneratedContentOut(OrmSchema):
     seo_description: str | None = None
     keywords: str | None = None
     hashtags: str | None = None
+    featured_image_prompt: str | None = None
+    featured_image_url: str | None = None
     photography_direction: str | None = None
     source_url: str | None = None
     suggested_post_time: str | None = None

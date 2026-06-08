@@ -2,22 +2,34 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import {
+  ArrowLeft,
   Bot,
   CheckCircle,
   ChevronDown,
   ChevronRight,
   ChevronUp,
   FileText,
+  ImageIcon,
   Instagram,
   Linkedin,
   Loader2,
   Mail,
+  Maximize2,
   Send,
   Sparkles,
+  X,
   XCircle,
   Zap,
 } from 'lucide-react';
-import { GeneratedContent, approveContent, fetchContent, rejectContent, schedulePublish } from '@/lib/admin-api';
+import {
+  GeneratedContent,
+  approveContent,
+  fetchContent,
+  generateContentImage,
+  rejectContent,
+  resolveBackendUrl,
+  schedulePublish,
+} from '@/lib/admin-api';
 
 const platformConfig: Record<string, { icon: React.ComponentType<{ className?: string }>; color: string; bg: string; label: string }> = {
   instagram: { icon: Instagram, color: 'text-rose-600', bg: 'bg-rose-50 border-rose-200', label: 'Instagram' },
@@ -58,6 +70,12 @@ export default function ApprovalPage() {
   const [notes, setNotes] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
+  const [imageBusyId, setImageBusyId] = useState<number | null>(null);
+  const [imagePreview, setImagePreview] = useState<{
+    src: string;
+    title: string;
+    label: string;
+  } | null>(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [platformFilter, setPlatformFilter] = useState('all');
@@ -76,6 +94,24 @@ export default function ApprovalPage() {
   }
 
   useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    if (!imagePreview) return;
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setImagePreview(null);
+      }
+    }
+
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', closeOnEscape);
+
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [imagePreview]);
 
   async function approve(id: number, publishAfterApproval = false) {
     const item = items.find((e) => e.id === id);
@@ -127,6 +163,23 @@ export default function ApprovalPage() {
       setError(err instanceof Error ? err.message : 'Unable to publish content');
     } finally {
       setBusyId(null);
+    }
+  }
+
+  async function generateImage(item: GeneratedContent) {
+    setImageBusyId(item.id);
+    setError('');
+    setMessage('');
+    try {
+      const result = await generateContentImage(item.id);
+      setItems((current) => current.map((entry) => (
+        entry.id === item.id ? result.content : entry
+      )));
+      setMessage('Image generated for this content.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to generate image');
+    } finally {
+      setImageBusyId(null);
     }
   }
 
@@ -209,6 +262,8 @@ export default function ApprovalPage() {
           const cfg = platformConfig[item.platform] || { icon: FileText, color: 'text-forest-600', bg: 'bg-white', label: item.platform };
           const canApprove = item.validation_status === 'passed' || item.validation_status === 'needs_human_attention';
           const isExpanded = expanded === item.id;
+          const previewImageUrl = item.featured_image_url || item.source_image_url;
+          const imageLabel = item.featured_image_url ? 'Generated Image' : item.source_image_url ? 'RSS Feed Image' : 'Editorial Image';
 
           return (
             <div
@@ -327,6 +382,58 @@ export default function ApprovalPage() {
                       <Sparkles className="w-3 h-3 text-gold-500 mt-0.5 shrink-0" />
                       Once approved, this post will be automatically published to <strong>{cfg.label}</strong> at the scheduled time.
                     </div>
+
+                    <div className="mt-5">
+                      <div className="flex items-center justify-between gap-3 mb-2">
+                        <div>
+                          <label className="block text-xs font-semibold text-forest-600 uppercase tracking-wider">
+                            {imageLabel}
+                          </label>
+                          {item.source_image_url && !item.featured_image_url && (
+                            <p className="mt-0.5 text-xs text-gray-400">Original RSS image. Generate to replace it.</p>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => generateImage(item)}
+                          disabled={imageBusyId === item.id}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-forest-50 hover:bg-forest-100 border border-forest-200 text-forest-700 rounded-lg text-xs font-semibold transition-colors disabled:opacity-60"
+                        >
+                          {imageBusyId === item.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImageIcon className="w-3.5 h-3.5" />}
+                          {item.featured_image_url ? 'Regenerate Image' : 'Generate Image'}
+                        </button>
+                      </div>
+
+                      <div className="relative aspect-[4/5] max-h-[520px] overflow-y-auto rounded-xl border border-gray-200 bg-white admin-scroll scroll-smooth">
+                        {previewImageUrl ? (
+                          <>
+                            <button
+                              onClick={() => setImagePreview({
+                                src: resolveBackendUrl(previewImageUrl),
+                                title: item.headline,
+                                label: imageLabel,
+                              })}
+                              className="absolute right-2 top-2 z-10 inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white/90 text-forest-700 shadow-sm ring-1 ring-gray-200 transition-colors hover:bg-forest-50"
+                              title="Expand image"
+                            >
+                              <Maximize2 className="h-4 w-4" />
+                            </button>
+                            <img
+                              src={resolveBackendUrl(previewImageUrl)}
+                              alt={item.headline}
+                              className="min-h-full w-full object-contain bg-white p-2"
+                            />
+                          </>
+                        ) : (
+                          <div className="flex h-full items-center justify-center text-gray-300">
+                            {imageBusyId === item.id ? (
+                              <Loader2 className="w-6 h-6 animate-spin" />
+                            ) : (
+                              <ImageIcon className="w-8 h-8" />
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -342,6 +449,58 @@ export default function ApprovalPage() {
           </div>
         )}
       </div>
+
+      {imagePreview && (
+        <div
+          className="fixed inset-0 z-[9999] p-3 sm:p-5"
+          style={{ background: 'rgba(13, 31, 15, 0.94)' }}
+          onClick={() => setImagePreview(null)}
+        >
+          <div
+            className="flex h-full flex-col overflow-hidden rounded-xl border border-cream-100/20 shadow-2xl"
+            style={{ background: '#f5f0e8' }}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div
+              className="flex items-center justify-between gap-4 px-4 py-3 text-cream-100 sm:px-5"
+              style={{ background: '#1a3a1c' }}
+            >
+              <div className="min-w-0">
+                <div className="text-xs font-semibold uppercase tracking-wider text-gold-400">
+                  {imagePreview.label}
+                </div>
+                <h2 className="truncate font-serif text-lg text-cream-100 sm:text-xl">
+                  {imagePreview.title}
+                </h2>
+              </div>
+              <button
+                onClick={() => setImagePreview(null)}
+                className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-gold-400/50 bg-gold-500 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-forest-950 shadow-sm transition-colors hover:bg-gold-400"
+                title="Back to review"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to Review
+              </button>
+            </div>
+            <div className="relative min-h-0 flex-1 overflow-auto p-4 admin-scroll sm:p-6">
+              <button
+                onClick={() => setImagePreview(null)}
+                className="absolute right-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white text-forest-700 shadow-sm ring-1 ring-cream-300 transition-colors hover:bg-cream-100"
+                title="Close image"
+              >
+                <X className="h-4 w-4" />
+              </button>
+              <div className="flex min-h-full items-center justify-center">
+                <img
+                  src={imagePreview.src}
+                  alt={imagePreview.title}
+                  className="max-h-[calc(100vh-140px)] max-w-full object-contain shadow-2xl"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
