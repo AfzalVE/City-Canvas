@@ -10,8 +10,8 @@ ALLOWED_CITIES = {
     "Paris",
 }
 
-MAX_FETCH_ARTICLES = 15
-MIN_RSS_RELEVANCE_SCORE = 35
+MAX_FETCH_ARTICLES = 50
+MIN_RSS_RELEVANCE_SCORE = 15
 
 # ==========================================================
 # RSS SOURCES
