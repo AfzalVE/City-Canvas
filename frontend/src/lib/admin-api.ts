@@ -1,0 +1,399 @@
+// Admin API mock data and functions for Virtual Holidays content automation
+
+export interface Feed {
+  id: number;
+  title: string;
+  summary: string | null;
+  link: string;
+  image_url: string | null;
+  city: string | null;
+  source_name: string | null;
+  published_date: string | null;
+  created_at: string;
+  approval_status: 'pending' | 'approved' | 'rejected';
+  relevance_score: number | null;
+  scoring_reason: string | null;
+}
+
+export interface GeneratedContent {
+  id: number;
+  feed_id: number;
+  platform: string;
+  headline: string;
+  content: string;
+  hashtags: string | null;
+  status: 'draft' | 'pending_review' | 'approved' | 'rejected' | 'published';
+  validation_status: 'not_checked' | 'passed' | 'failed' | 'needs_human_attention';
+  validation_issues: string | null;
+  scheduled_publish_time: string | null;
+  created_at: string;
+}
+
+export interface PublishLog {
+  id: number;
+  content_id: number;
+  platform: string;
+  status: 'queued' | 'published' | 'failed' | 'manual_publish_required';
+  scheduled_publish_time: string | null;
+  post_url: string | null;
+  response_message: string | null;
+  created_at: string;
+}
+
+export interface AgentRun {
+  id: number;
+  agent_name: string;
+  action: string;
+  status: 'running' | 'completed' | 'failed';
+  message: string | null;
+  created_at: string;
+}
+
+// ─── Mock Data ─────────────────────────────────────────────
+
+let feedsDB: Feed[] = [
+  {
+    id: 1,
+    title: 'Hidden Canals of Amsterdam: A Local\'s Secret Guide',
+    summary: 'Discover the enchanting secret waterways of Amsterdam that most tourists never see. From the quiet Jordaan canals to the historic Grachtengordel.',
+    link: 'https://example.com/amsterdam-canals',
+    image_url: 'https://images.pexels.com/photos/1547813/pexels-photo-1547813.jpeg?auto=compress&cs=tinysrgb&w=600',
+    city: 'Amsterdam',
+    source_name: 'I Amsterdam',
+    published_date: '2024-12-15',
+    created_at: '2024-12-15T10:00:00Z',
+    approval_status: 'pending',
+    relevance_score: 92,
+    scoring_reason: 'High relevance: canal tourism, local secrets, Amsterdam specific',
+  },
+  {
+    id: 2,
+    title: 'Paris Christmas Markets 2024: Complete Guide',
+    summary: 'The best Christmas markets in Paris this season, from Champs-Élysées to Montmartre. Includes dates, locations, and must-try treats.',
+    link: 'https://example.com/paris-christmas',
+    image_url: 'https://images.pexels.com/photos/532826/pexels-photo-532826.jpeg?auto=compress&cs=tinysrgb&w=600',
+    city: 'Paris',
+    source_name: 'Sortiraparis',
+    published_date: '2024-12-14',
+    created_at: '2024-12-14T09:30:00Z',
+    approval_status: 'approved',
+    relevance_score: 88,
+    scoring_reason: 'Seasonal content, Paris tourism, strong engagement potential',
+  },
+  {
+    id: 3,
+    title: 'Swiss Alps Winter Wonderland: Ski & Spa Guide',
+    summary: 'Experience the magic of Swiss Alps this winter. Top ski resorts, thermal spas, and chocolate tastings in Zermatt and St. Moritz.',
+    link: 'https://example.com/swiss-alps',
+    image_url: 'https://images.pexels.com/photos/1287145/pexels-photo-1287145.jpeg?auto=compress&cs=tinysrgb&w=600',
+    city: 'Global',
+    source_name: 'Lonely Planet',
+    published_date: '2024-12-13',
+    created_at: '2024-12-13T14:00:00Z',
+    approval_status: 'pending',
+    relevance_score: 85,
+    scoring_reason: 'Luxury travel, winter sports, high-value audience',
+  },
+  {
+    id: 4,
+    title: 'Venice Luxury Hotels: Palazzo Stays Under €500',
+    summary: 'The most opulent Venetian palazzo hotels that won\'t break the bank. Canal views, frescoed ceilings, and private water taxis.',
+    link: 'https://example.com/venice-hotels',
+    image_url: 'https://images.pexels.com/photos/208701/pexels-photo-208701.jpeg?auto=compress&cs=tinysrgb&w=600',
+    city: 'Global',
+    source_name: 'Time Out',
+    published_date: '2024-12-12',
+    created_at: '2024-12-12T11:00:00Z',
+    approval_status: 'rejected',
+    relevance_score: 45,
+    scoring_reason: 'Low relevance: price-focused, not aligned with luxury brand',
+  },
+  {
+    id: 5,
+    title: 'Barcelona Food Tour: Tapas & Wine Trail',
+    summary: 'Best tapas bars and wine cellars in Barcelona\'s Gothic Quarter and El Born. A culinary journey through Catalan flavors.',
+    link: 'https://example.com/barcelona-food',
+    image_url: 'https://images.pexels.com/photos/1388030/pexels-photo-1388030.jpeg?auto=compress&cs=tinysrgb&w=600',
+    city: 'Global',
+    source_name: 'DutchNews.nl',
+    published_date: '2024-12-11',
+    created_at: '2024-12-11T08:00:00Z',
+    approval_status: 'pending',
+    relevance_score: 78,
+    scoring_reason: 'Food tourism, cultural experience, moderate engagement',
+  },
+];
+
+let contentDB: GeneratedContent[] = [
+  {
+    id: 101,
+    feed_id: 2,
+    platform: 'instagram',
+    headline: 'Paris is glowing ✨ Christmas markets are now open!',
+    content: `✨ Paris is glowing!
+
+The Christmas markets are now open across the city. From the Champs-Élysées to Montmartre, there's magic around every corner.
+
+🍷 Mulled wine
+🧀 Raclette
+🎄 Handcrafted ornaments
+
+Which Paris market is on your bucket list?
+
+#ParisChristmas #TravelParis #VirtualHolidays #ChristmasMarkets #ParisInWinter`,
+    hashtags: '["#ParisChristmas","#TravelParis","#VirtualHolidays"]',
+    status: 'draft',
+    validation_status: 'passed',
+    validation_issues: null,
+    scheduled_publish_time: null,
+    created_at: '2024-12-14T12:00:00Z',
+  },
+  {
+    id: 102,
+    feed_id: 2,
+    platform: 'linkedin',
+    headline: 'Paris Christmas Markets: A Strategic Tourism Insight',
+    content: `The Paris Christmas market season generates €200M+ in tourism revenue annually. For travel operators, this represents a key Q4 opportunity.
+
+Key insights:
+• 15+ major markets across the city
+• Average visitor spend: €85/day
+• Peak dates: Dec 15 - Jan 5
+
+How are you positioning your European travel offerings this season?
+
+#TravelIndustry #ParisTourism #BusinessTravel`,
+    hashtags: null,
+    status: 'pending_review',
+    validation_status: 'needs_human_attention',
+    validation_issues: 'Tone may be too corporate for brand voice. Consider softer language.',
+    scheduled_publish_time: null,
+    created_at: '2024-12-14T12:05:00Z',
+  },
+  {
+    id: 103,
+    feed_id: 1,
+    platform: 'blog',
+    headline: 'Amsterdam\'s Secret Canals: A Local\'s Guide',
+    content: `## Beyond the Tourist Trail: Amsterdam\'s Hidden Canals
+
+While millions flock to the Anne Frank House and Rijksmuseum, Amsterdam\'s true magic lies in its lesser-known waterways...
+
+[Full blog post content would go here]`,
+    hashtags: null,
+    status: 'draft',
+    validation_status: 'not_checked',
+    validation_issues: null,
+    scheduled_publish_time: null,
+    created_at: '2024-12-15T11:00:00Z',
+  },
+];
+
+let logsDB: PublishLog[] = [
+  {
+    id: 201,
+    content_id: 101,
+    platform: 'instagram',
+    status: 'queued',
+    scheduled_publish_time: '2024-12-20T18:00:00Z',
+    post_url: null,
+    response_message: null,
+    created_at: '2024-12-14T12:00:00Z',
+  },
+  {
+    id: 202,
+    content_id: 102,
+    platform: 'linkedin',
+    status: 'manual_publish_required',
+    scheduled_publish_time: null,
+    post_url: null,
+    response_message: 'Brand validation flagged for human review',
+    created_at: '2024-12-14T12:05:00Z',
+  },
+];
+
+let runsDB: AgentRun[] = [
+  { id: 301, agent_name: 'RSS Fetcher', action: 'fetch_feeds', status: 'completed', message: 'Fetched 5 articles from 4 sources', created_at: '2024-12-15T10:00:00Z' },
+  { id: 302, agent_name: 'AI Scorer', action: 'score_articles', status: 'completed', message: 'Scored 5 articles, avg score 77.6', created_at: '2024-12-15T10:05:00Z' },
+  { id: 303, agent_name: 'Content Generator', action: 'generate_posts', status: 'completed', message: 'Generated 3 posts from approved articles', created_at: '2024-12-14T12:00:00Z' },
+  { id: 304, agent_name: 'Brand Validator', action: 'validate_content', status: 'completed', message: '2 passed, 1 needs attention', created_at: '2024-12-14T12:10:00Z' },
+];
+
+// ─── Auth ──────────────────────────────────────────────────
+
+const ADMIN_KEY = 'vh_admin_session';
+
+export function getAdminToken(): string | null {
+  return localStorage.getItem(ADMIN_KEY);
+}
+
+export function getAdminUser(): string | null {
+  return localStorage.getItem(`${ADMIN_KEY}_user`);
+}
+
+export function setAdminSession(token: string, username: string) {
+  localStorage.setItem(ADMIN_KEY, token);
+  localStorage.setItem(`${ADMIN_KEY}_user`, username);
+}
+
+export function clearAdminSession() {
+  localStorage.removeItem(ADMIN_KEY);
+  localStorage.removeItem(`${ADMIN_KEY}_user`);
+}
+
+export async function verifyAdminSession(): Promise<{ username: string }> {
+  const token = getAdminToken();
+  if (!token) throw new Error('No session');
+  return { username: getAdminUser() || 'admin' };
+}
+
+export async function adminLogin(username: string, password: string): Promise<{ token: string; username: string }> {
+  if (password.length < 4) throw new Error('Invalid credentials');
+  const token = `mock_${Date.now()}`;
+  setAdminSession(token, username);
+  return { token, username };
+}
+
+// ─── Feeds ─────────────────────────────────────────────────
+
+export async function fetchFeeds(filters?: { status?: string }): Promise<Feed[]> {
+  await delay(400);
+  let data = [...feedsDB];
+  if (filters?.status) data = data.filter((f) => f.approval_status === filters.status);
+  return data.sort((a, b) => (b.relevance_score || 0) - (a.relevance_score || 0));
+}
+
+export async function approveFeed(feedId: number): Promise<{ content_generation?: { created: number[] }; brand_validation?: { validated: number } }> {
+  await delay(600);
+  feedsDB = feedsDB.map((f) => (f.id === feedId ? { ...f, approval_status: 'approved' as const } : f));
+  // Auto-generate content
+  const feed = feedsDB.find((f) => f.id === feedId);
+  if (feed) {
+    const newContent: GeneratedContent = {
+      id: 1000 + Date.now(),
+      feed_id: feed.id,
+      platform: ['instagram', 'linkedin', 'blog'][Math.floor(Math.random() * 3)],
+      headline: `AI: ${feed.title.slice(0, 50)}...`,
+      content: `Generated content for: ${feed.title}\n\n${feed.summary || ''}`,
+      hashtags: '["#VirtualHolidays","#Travel"]',
+      status: 'draft',
+      validation_status: 'not_checked',
+      validation_issues: null,
+      scheduled_publish_time: null,
+      created_at: new Date().toISOString(),
+    };
+    contentDB.push(newContent);
+    return { content_generation: { created: [newContent.id] }, brand_validation: { validated: 1 } };
+  }
+  return {};
+}
+
+export async function rejectFeed(feedId: number): Promise<void> {
+  await delay(400);
+  feedsDB = feedsDB.map((f) => (f.id === feedId ? { ...f, approval_status: 'rejected' as const } : f));
+}
+
+export async function runRssFetch(): Promise<{ result: { inserted: number; skipped: number; scoring?: { scored: number } } }> {
+  await delay(800);
+  return { result: { inserted: 3, skipped: 2, scoring: { scored: 3 } } };
+}
+
+export async function runScoring(): Promise<{ message: string }> {
+  await delay(600);
+  return { message: 'AI scoring complete. 3 articles scored.' };
+}
+
+// ─── Content ───────────────────────────────────────────────
+
+export async function fetchContent(): Promise<GeneratedContent[]> {
+  await delay(400);
+  return [...contentDB];
+}
+
+export async function generateContent(feedIds?: number[]): Promise<{ result: { created: number[] } }> {
+  await delay(800);
+  const created: number[] = [];
+  const targets = feedIds || feedsDB.filter((f) => f.approval_status === 'approved').map((f) => f.id);
+  for (const fid of targets) {
+    const feed = feedsDB.find((f) => f.id === fid);
+    if (!feed) continue;
+    const newId = 1000 + Date.now() + Math.floor(Math.random() * 1000);
+    contentDB.push({
+      id: newId,
+      feed_id: fid,
+      platform: ['instagram', 'linkedin', 'blog', 'newsletter'][Math.floor(Math.random() * 4)],
+      headline: `AI: ${feed.title.slice(0, 45)}`,
+      content: `Generated for ${feed.title}\n\n${feed.summary || ''}\n\n#VirtualHolidays #Travel`,
+      hashtags: '["#VirtualHolidays","#Travel","#Europe"]',
+      status: 'draft',
+      validation_status: 'not_checked',
+      validation_issues: null,
+      scheduled_publish_time: null,
+      created_at: new Date().toISOString(),
+    });
+    created.push(newId);
+  }
+  return { result: { created } };
+}
+
+export async function runBrandValidation(ids?: number[]): Promise<{ message: string }> {
+  await delay(700);
+  const targets = ids ? contentDB.filter((c) => ids.includes(c.id)) : contentDB.filter((c) => c.validation_status === 'not_checked');
+  for (const item of targets) {
+    const passed = Math.random() > 0.3;
+    item.validation_status = passed ? 'passed' : 'needs_human_attention';
+    if (!passed) item.validation_issues = 'Tone may need adjustment for brand voice.';
+  }
+  return { message: `Brand validation complete. ${targets.filter((t) => t.validation_status === 'passed').length} passed, ${targets.filter((t) => t.validation_status === 'needs_human_attention').length} need review.` };
+}
+
+// ─── Approval ──────────────────────────────────────────────
+
+export async function approveContent(id: number, scheduledIso?: string): Promise<void> {
+  await delay(500);
+  contentDB = contentDB.map((c) => (c.id === id ? { ...c, status: 'approved' as const, scheduled_publish_time: scheduledIso || c.scheduled_publish_time } : c));
+}
+
+export async function rejectContent(id: number, _notes?: string): Promise<void> {
+  await delay(400);
+  contentDB = contentDB.map((c) => (c.id === id ? { ...c, status: 'rejected' as const } : c));
+}
+
+// ─── Publishing ────────────────────────────────────────────
+
+export async function fetchPublishLogs(): Promise<PublishLog[]> {
+  await delay(400);
+  return [...logsDB];
+}
+
+export async function schedulePublish(contentId: number, platform: string, scheduledIso: string): Promise<void> {
+  await delay(500);
+  logsDB.push({
+    id: 5000 + Date.now(),
+    content_id: contentId,
+    platform,
+    status: 'queued',
+    scheduled_publish_time: scheduledIso,
+    post_url: null,
+    response_message: null,
+    created_at: new Date().toISOString(),
+  });
+}
+
+export async function updatePublishStatus(logId: number, status: 'published' | 'failed'): Promise<void> {
+  await delay(400);
+  logsDB = logsDB.map((l) => (l.id === logId ? { ...l, status } : l));
+}
+
+// ─── Agent Runs ────────────────────────────────────────────
+
+export async function fetchAgentRuns(): Promise<AgentRun[]> {
+  await delay(300);
+  return [...runsDB].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+}
+
+// ─── Utils ─────────────────────────────────────────────────
+
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
