@@ -1,9 +1,11 @@
 import re
 import feedparser
 
+from datetime import datetime
 from sqlalchemy.orm import Session
 
 from app.models import Feed
+from app.models import RssSource
 
 ALLOWED_CITIES = {
     "Amsterdam",
@@ -476,6 +478,7 @@ class RSSService:
     def create_article(
         entry,
         source_name,
+        source_url=None,
         forced_city=None
     ):
 
@@ -553,6 +556,8 @@ class RSSService:
 
             "source_name": source_name,
 
+            "source_url": source_url,
+
             "city": city,
 
             "category": category,
@@ -571,6 +576,52 @@ class RSSService:
     # ======================================================
 
     @staticmethod
+    def ensure_default_sources(
+        db: Session
+    ):
+
+        existing_count = db.query(RssSource).count()
+
+        if existing_count > 0:
+            return
+
+        for source in RSS_SOURCES:
+
+            db.add(
+                RssSource(
+                    name=source["source"],
+                    url=source["url"],
+                    city=source.get("city"),
+                    category=source.get("category"),
+                    enabled=True
+                )
+            )
+
+        db.commit()
+
+    @staticmethod
+    def get_sources(
+        db: Session,
+        enabled_only: bool = False
+    ):
+
+        RSSService.ensure_default_sources(db)
+
+        query = db.query(RssSource)
+
+        if enabled_only:
+            query = query.filter(RssSource.enabled.is_(True))
+
+        return (
+            query
+            .order_by(
+                RssSource.city.asc(),
+                RssSource.name.asc()
+            )
+            .all()
+        )
+
+    @staticmethod
     def fetch_and_store(
         db: Session
     ):
@@ -579,16 +630,21 @@ class RSSService:
         inserted = 0
         skipped = 0
 
-        for source in RSS_SOURCES:
+        sources = RSSService.get_sources(
+            db,
+            enabled_only=True
+        )
+
+        for source in sources:
 
             try:
 
                 feed = feedparser.parse(
-                    source["url"]
+                    source.url
                 )
 
                 print(
-                    f"\nProcessing {source['source']}"
+                    f"\nProcessing {source.name}"
                 )
 
                 print(
@@ -600,8 +656,9 @@ class RSSService:
                     article = (
                         RSSService.create_article(
                             entry,
-                            source["source"],
-                            source["city"]
+                            source.name,
+                            source.url,
+                            source.city
                         )
                     )
 
@@ -615,10 +672,14 @@ class RSSService:
             except Exception as e:
 
                 print(
-                    f"RSS ERROR -> {source['url']}"
+                    f"RSS ERROR -> {source.url}"
                 )
 
                 print(str(e))
+
+            finally:
+
+                source.last_fetched = datetime.utcnow()
 
         candidates = sorted(
             candidates,
@@ -668,6 +729,8 @@ class RSSService:
                 author=article["author"],
 
                 source_name=article["source_name"],
+
+                source_url=article["source_url"],
 
                 image_url=article["image_url"],
 

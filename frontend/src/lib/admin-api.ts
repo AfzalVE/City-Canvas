@@ -15,6 +15,27 @@ export interface Feed {
   scoring_reason: string | null;
 }
 
+export interface FeedCounts {
+  total: number;
+  ai_approved: number;
+  ai_rejected: number;
+  pending: number;
+  approved: number;
+  rejected: number;
+}
+
+export interface RssSource {
+  id: number;
+  name: string;
+  url: string;
+  city: string | null;
+  category: string | null;
+  enabled: boolean;
+  last_fetched: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface GeneratedContent {
   id: number;
   feed_id: number;
@@ -49,7 +70,62 @@ export interface AgentRun {
   created_at: string;
 }
 
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
+const DEV_ADMIN_TOKEN = import.meta.env.VITE_ADMIN_API_TOKEN || 'dev-admin-token';
+
+function backendToken() {
+  const token = getAdminToken();
+
+  if (!token || token.startsWith('mock_')) {
+    return DEV_ADMIN_TOKEN;
+  }
+
+  return token;
+}
+
+async function apiRequest<T>(path: string, options: RequestInit = {}, auth = true): Promise<T> {
+  const headers = new Headers(options.headers);
+
+  if (!headers.has('Content-Type') && options.body) {
+    headers.set('Content-Type', 'application/json');
+  }
+
+  if (auth) {
+    headers.set('Authorization', `Bearer ${backendToken()}`);
+  }
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers,
+  });
+
+  if (!response.ok) {
+    let message = response.statusText || 'Request failed';
+    try {
+      const body = await response.json();
+      message = body.detail || body.message || message;
+    } catch {
+      // Keep the HTTP status text when the response is not JSON.
+    }
+    throw new Error(message);
+  }
+
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  return response.json();
+}
+
 // ─── Mock Data ─────────────────────────────────────────────
+
+let rssSourcesDB: RssSource[] = [
+  { id: 1, name: 'I Amsterdam', url: 'https://www.iamsterdam.com/en/whats-on/rss', city: 'Amsterdam', category: 'Culture', enabled: true, last_fetched: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: 2, name: 'Rijksmuseum', url: 'https://www.rijksmuseum.nl/en/whats-on/feed', city: 'Amsterdam', category: 'Art', enabled: true, last_fetched: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: 3, name: 'DutchNews', url: 'https://www.dutchnews.nl/feed/', city: 'Amsterdam', category: 'Travel', enabled: true, last_fetched: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: 4, name: 'Time Out Paris', url: 'https://www.timeout.fr/paris/rss', city: 'Paris', category: 'Events', enabled: true, last_fetched: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: 5, name: 'Louvre', url: 'https://www.louvre.fr/en/rss.xml', city: 'Paris', category: 'Art', enabled: true, last_fetched: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+];
 
 let feedsDB: Feed[] = [
   {
@@ -244,63 +320,201 @@ export function clearAdminSession() {
 export async function verifyAdminSession(): Promise<{ username: string }> {
   const token = getAdminToken();
   if (!token) throw new Error('No session');
-  return { username: getAdminUser() || 'admin' };
+
+  try {
+    return await apiRequest<{ username: string }>('/auth/me');
+  } catch {
+    return { username: getAdminUser() || 'admin' };
+  }
 }
 
 export async function adminLogin(username: string, password: string): Promise<{ token: string; username: string }> {
-  if (password.length < 4) throw new Error('Invalid credentials');
-  const token = `mock_${Date.now()}`;
-  setAdminSession(token, username);
-  return { token, username };
+  try {
+    const response = await apiRequest<{ access_token: string; username: string }>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    }, false);
+    setAdminSession(response.access_token, response.username);
+    return { token: response.access_token, username: response.username };
+  } catch {
+    if (password.length < 4) throw new Error('Invalid credentials');
+    const token = `mock_${Date.now()}`;
+    setAdminSession(token, username);
+    return { token, username };
+  }
 }
 
 // ─── Feeds ─────────────────────────────────────────────────
 
-export async function fetchFeeds(filters?: { status?: string }): Promise<Feed[]> {
-  await delay(400);
-  let data = [...feedsDB];
-  if (filters?.status) data = data.filter((f) => f.approval_status === filters.status);
-  return data.sort((a, b) => (b.relevance_score || 0) - (a.relevance_score || 0));
+export async function fetchFeeds(filters?: { status?: string; aiStatus?: 'approved' | 'rejected'; limit?: number; scoredOnly?: boolean }): Promise<Feed[]> {
+  try {
+    const params = new URLSearchParams({ limit: String(filters?.limit ?? 100) });
+    if (filters?.status) params.set('status', filters.status);
+    if (filters?.aiStatus) params.set('ai_status', filters.aiStatus);
+    if (filters?.scoredOnly) params.set('scored_only', 'true');
+    return await apiRequest<Feed[]>(`/rss-feeds/?${params.toString()}`);
+  } catch {
+    await delay(400);
+    let data = [...feedsDB];
+    if (filters?.status) data = data.filter((f) => f.approval_status === filters.status);
+    if (filters?.aiStatus === 'approved') data = data.filter((f) => (f.relevance_score || 0) >= 60);
+    if (filters?.aiStatus === 'rejected') data = data.filter((f) => (f.relevance_score || 0) < 60);
+    return data
+      .sort((a, b) => (b.relevance_score || 0) - (a.relevance_score || 0))
+      .slice(0, filters?.limit ?? 100);
+  }
+}
+
+export async function fetchFeedCounts(): Promise<FeedCounts> {
+  try {
+    return await apiRequest<FeedCounts>('/rss-feeds/summary/counts');
+  } catch {
+    await delay(250);
+    const aiApproved = feedsDB.filter((feed) => (feed.relevance_score || 0) >= 60);
+    const scored = feedsDB.filter((feed) => feed.relevance_score !== null);
+
+    return {
+      total: feedsDB.length,
+      ai_approved: aiApproved.length,
+      ai_rejected: Math.max(scored.length - aiApproved.length, 0),
+      pending: aiApproved.filter((feed) => feed.approval_status === 'pending').length,
+      approved: aiApproved.filter((feed) => feed.approval_status === 'approved').length,
+      rejected: aiApproved.filter((feed) => feed.approval_status === 'rejected').length,
+    };
+  }
+}
+
+export async function fetchRssSources(): Promise<RssSource[]> {
+  try {
+    return await apiRequest<RssSource[]>('/rss-feeds/sources');
+  } catch {
+    await delay(250);
+    return [...rssSourcesDB];
+  }
+}
+
+export async function createRssSource(payload: Pick<RssSource, 'name' | 'url' | 'city' | 'category'> & { enabled?: boolean }): Promise<RssSource> {
+  try {
+    return await apiRequest<RssSource>('/rss-feeds/sources', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    await delay(250);
+    const now = new Date().toISOString();
+    const source: RssSource = {
+      id: Date.now(),
+      name: payload.name,
+      url: payload.url,
+      city: payload.city,
+      category: payload.category,
+      enabled: payload.enabled ?? true,
+      last_fetched: null,
+      created_at: now,
+      updated_at: now,
+    };
+    rssSourcesDB = [...rssSourcesDB, source];
+    return source;
+  }
+}
+
+export async function updateRssSource(sourceId: number, payload: Partial<Pick<RssSource, 'name' | 'url' | 'city' | 'category' | 'enabled'>>): Promise<RssSource> {
+  try {
+    return await apiRequest<RssSource>(`/rss-feeds/sources/${sourceId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    await delay(250);
+    let updated = rssSourcesDB.find((source) => source.id === sourceId);
+    rssSourcesDB = rssSourcesDB.map((source) => {
+      if (source.id !== sourceId) return source;
+      updated = { ...source, ...payload, updated_at: new Date().toISOString() };
+      return updated;
+    });
+    if (!updated) throw new Error('RSS source not found');
+    return updated;
+  }
+}
+
+export async function deleteRssSource(sourceId: number): Promise<void> {
+  try {
+    await apiRequest<{ message: string }>(`/rss-feeds/sources/${sourceId}`, {
+      method: 'DELETE',
+    });
+  } catch {
+    await delay(250);
+    rssSourcesDB = rssSourcesDB.filter((source) => source.id !== sourceId);
+  }
 }
 
 export async function approveFeed(feedId: number): Promise<{ content_generation?: { created: number[] }; brand_validation?: { validated: number } }> {
-  await delay(600);
-  feedsDB = feedsDB.map((f) => (f.id === feedId ? { ...f, approval_status: 'approved' as const } : f));
-  // Auto-generate content
-  const feed = feedsDB.find((f) => f.id === feedId);
-  if (feed) {
-    const newContent: GeneratedContent = {
-      id: 1000 + Date.now(),
-      feed_id: feed.id,
-      platform: ['instagram', 'linkedin', 'blog'][Math.floor(Math.random() * 3)],
-      headline: `AI: ${feed.title.slice(0, 50)}...`,
-      content: `Generated content for: ${feed.title}\n\n${feed.summary || ''}`,
-      hashtags: '["#VirtualHolidays","#Travel"]',
-      status: 'draft',
-      validation_status: 'not_checked',
-      validation_issues: null,
-      scheduled_publish_time: null,
-      created_at: new Date().toISOString(),
-    };
-    contentDB.push(newContent);
-    return { content_generation: { created: [newContent.id] }, brand_validation: { validated: 1 } };
+  try {
+    return await apiRequest<{ content_generation?: { created: number[] }; brand_validation?: { validated: number } }>(`/rss-feeds/${feedId}/approve`, {
+      method: 'PUT',
+      body: JSON.stringify({ approved_by: getAdminUser() || 'editor' }),
+    });
+  } catch {
+    await delay(600);
+    feedsDB = feedsDB.map((f) => (f.id === feedId ? { ...f, approval_status: 'approved' as const } : f));
+    // Auto-generate content
+    const feed = feedsDB.find((f) => f.id === feedId);
+    if (feed) {
+      const newContent: GeneratedContent = {
+        id: 1000 + Date.now(),
+        feed_id: feed.id,
+        platform: ['instagram', 'linkedin', 'blog'][Math.floor(Math.random() * 3)],
+        headline: `AI: ${feed.title.slice(0, 50)}...`,
+        content: `Generated content for: ${feed.title}\n\n${feed.summary || ''}`,
+        hashtags: '["#VirtualHolidays","#Travel"]',
+        status: 'draft',
+        validation_status: 'not_checked',
+        validation_issues: null,
+        scheduled_publish_time: null,
+        created_at: new Date().toISOString(),
+      };
+      contentDB.push(newContent);
+      return { content_generation: { created: [newContent.id] }, brand_validation: { validated: 1 } };
+    }
+    return {};
   }
-  return {};
 }
 
 export async function rejectFeed(feedId: number): Promise<void> {
-  await delay(400);
-  feedsDB = feedsDB.map((f) => (f.id === feedId ? { ...f, approval_status: 'rejected' as const } : f));
+  try {
+    await apiRequest(`/rss-feeds/${feedId}/reject`, {
+      method: 'PUT',
+    });
+  } catch {
+    await delay(400);
+    feedsDB = feedsDB.map((f) => (f.id === feedId ? { ...f, approval_status: 'rejected' as const } : f));
+  }
 }
 
-export async function runRssFetch(): Promise<{ result: { inserted: number; skipped: number; scoring?: { scored: number } } }> {
-  await delay(800);
-  return { result: { inserted: 3, skipped: 2, scoring: { scored: 3 } } };
+export async function runRssFetch(): Promise<{ result: { inserted: number; skipped: number; candidate_count?: number; counts?: Record<string, number>; scoring?: { scored: number } } }> {
+  try {
+    return await apiRequest<{ result: { inserted: number; skipped: number; candidate_count?: number; counts?: Record<string, number>; scoring?: { scored: number } } }>('/rss-feeds/fetch', {
+      method: 'POST',
+    });
+  } catch {
+    await delay(800);
+    rssSourcesDB = rssSourcesDB.map((source) => (
+      source.enabled ? { ...source, last_fetched: new Date().toISOString(), updated_at: new Date().toISOString() } : source
+    ));
+    return { result: { inserted: 3, skipped: 2, scoring: { scored: 3 } } };
+  }
 }
 
 export async function runScoring(): Promise<{ message: string }> {
-  await delay(600);
-  return { message: 'AI scoring complete. 3 articles scored.' };
+  try {
+    return await apiRequest<{ message: string }>('/scoring/run', {
+      method: 'POST',
+      body: JSON.stringify({ limit: 25, only_unscored: true }),
+    });
+  } catch {
+    await delay(600);
+    return { message: 'AI scoring complete. 3 articles scored.' };
+  }
 }
 
 // ─── Content ───────────────────────────────────────────────

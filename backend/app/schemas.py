@@ -45,6 +45,24 @@ class FeedRejectionRequest(BaseModel):
     rejection_reason: str | None = None
 
 
+class RssSourceCreate(BaseModel):
+
+    name: str
+    url: str
+    city: str | None = None
+    category: str | None = None
+    enabled: bool = True
+
+
+class RssSourceUpdate(BaseModel):
+
+    name: str | None = None
+    url: str | None = None
+    city: str | None = None
+    category: str | None = None
+    enabled: bool | None = None
+
+
 class FeedNotesRequest(BaseModel):
 
     editor_notes: str
