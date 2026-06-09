@@ -192,7 +192,7 @@ export default function RSSPage() {
             <Rss className="h-3.5 w-3.5" /> RSS Agent · AI Scoring Enabled
           </div>
           <h1 className="font-serif text-3xl font-bold text-forest-900">RSS Management</h1>
-          <p className="mt-2 max-w-3xl text-sm text-gray-600">Automatically fetch travel articles, score and filter them with AI, then send only AI-approved articles into the admin review queue.</p>
+          <p className="mt-2 max-w-3xl text-sm text-gray-600"></p>
         </div>
         <button onClick={handleFetch} disabled={running} className="inline-flex items-center justify-center gap-2 rounded-xl bg-forest-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-forest-800 disabled:opacity-60">
           {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
@@ -200,10 +200,10 @@ export default function RSSPage() {
         </button>
       </div>
 
-      <div className="mb-6 rounded-2xl border border-emerald-100 bg-emerald-50 px-5 py-4 text-sm text-emerald-800 shadow-sm">
+      {/* <div className="mb-6 rounded-2xl border border-emerald-100 bg-emerald-50 px-5 py-4 text-sm text-emerald-800 shadow-sm">
         <CheckCircle className="mr-2 inline h-4 w-4" />
         RSS fetch complete — Total fetched 46. AI approved 15 and AI rejected 31. Review AI-approved articles below and approve for AI post generation.
-      </div>
+      </div> */}
 
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
         {stats.map((s) => (

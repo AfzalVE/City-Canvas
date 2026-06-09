@@ -161,7 +161,7 @@ export default function ApprovalPage() {
   const [apiItems, setApiItems] = useState<GeneratedContent[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
-  const [expanded, setExpanded] = useState<Record<number, boolean>>({});
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [scheduleFor, setScheduleFor] = useState<PreviewItem | null>(null);
   const [scheduleAt, setScheduleAt] = useState(toLocalDatetimeValue());
 
@@ -248,7 +248,7 @@ export default function ApprovalPage() {
             <Sparkles className="h-3.5 w-3.5" /> Generated Content Preview
           </div>
           <h1 className="font-serif text-3xl font-bold text-forest-900">AI Post Approval</h1>
-          <p className="mt-2 max-w-3xl text-sm text-gray-600">Review generated blog, social copy, AI images, SEO metadata and hashtags before approving for immediate publishing or scheduling.</p>
+          <p className="mt-2 max-w-3xl text-sm text-gray-600"></p>
         </div>
         <div className="flex flex-wrap gap-3">
           <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-700"><Clock className="mr-2 inline h-4 w-4" /> {items.filter((i) => i.status !== 'approved' && i.status !== 'rejected').length} waiting review</div>
@@ -260,7 +260,7 @@ export default function ApprovalPage() {
         <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"><p className="text-xs font-bold uppercase tracking-wide text-gray-400">Content types</p><p className="mt-2 text-2xl font-extrabold text-forest-900">5</p><p className="text-xs text-gray-500">Blog, Facebook, Instagram, LinkedIn, X</p></div>
         <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"><p className="text-xs font-bold uppercase tracking-wide text-gray-400">AI Images</p><p className="mt-2 text-2xl font-extrabold text-forest-900">Ready</p><p className="text-xs text-gray-500">One image preview per card</p></div>
         <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"><p className="text-xs font-bold uppercase tracking-wide text-gray-400">SEO Metadata</p><p className="mt-2 text-2xl font-extrabold text-emerald-700">Included</p><p className="text-xs text-gray-500">SEO title and meta description</p></div>
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"><p className="text-xs font-bold uppercase tracking-wide text-gray-400">Validation</p><p className="mt-2 text-2xl font-extrabold text-amber-700">Human</p><p className="text-xs text-gray-500">Admin decides before publishing</p></div>
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"><p className="text-xs font-bold uppercase tracking-wide text-gray-400">Validation</p><p className="mt-2 text-2xl font-extrabold text-amber-700">Admin</p><p className="text-xs text-gray-500">Admin decides before publishing</p></div>
       </div>
 
       {loading ? (
@@ -268,13 +268,14 @@ export default function ApprovalPage() {
       ) : (
         <div className="grid gap-5 lg:grid-cols-2 xl:grid-cols-3">
           {items.map((item) => {
+            const itemKey = `${item.id}-${item.platform}`;
             const meta = platformMeta[item.platform] || platformMeta.blog;
             const Icon = meta.icon;
-            const isOpen = expanded[item.id];
+            const isOpen = expanded[itemKey];
             return (
-              <article key={item.id} className="group overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl">
+              <article key={itemKey} className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
                 <div className="relative h-48 overflow-hidden">
-                  <img src={item.image} alt="" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+                  <img src={item.image} alt="" className="h-full w-full object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/45 to-transparent" />
                   <span className={`absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold ${meta.badge}`}><Icon className="h-3.5 w-3.5" /> {meta.label}</span>
                   <span className={`absolute bottom-4 left-4 rounded-full border px-3 py-1 text-xs font-bold ${statusStyle(item.status)}`}>{item.status.replace('_', ' ')}</span>
@@ -288,25 +289,25 @@ export default function ApprovalPage() {
                     </div>
                   </div>
 
-                  <div className={`grid overflow-hidden transition-all duration-300 ${isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr] group-hover:grid-rows-[1fr]'}`}>
-                    <div className="min-h-0">
-                      <div className="mt-4 rounded-2xl bg-[#F8FAF7] p-4 text-sm leading-6 text-gray-700 whitespace-pre-line">{item.content}</div>
-                      <div className="mt-4 flex flex-wrap gap-2">
+                  {isOpen && (
+                    <div className="mt-4 space-y-4">
+                      <div className="rounded-2xl bg-[#F8FAF7] p-4 text-sm leading-6 text-gray-700 whitespace-pre-line">{item.content}</div>
+                      <div className="flex flex-wrap gap-2">
                         {hashtags(item.hashtags).map((tag) => <span key={tag} className="rounded-full bg-forest-50 px-3 py-1 text-xs font-semibold text-forest-700">{tag}</span>)}
                       </div>
                       {(item.seoTitle || item.metaDescription) && (
-                        <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-4">
+                        <div className="rounded-2xl border border-gray-200 bg-white p-4">
                           <p className="text-xs font-bold uppercase tracking-wide text-gray-400">SEO Title</p>
                           <p className="mt-1 text-sm font-semibold text-gray-900">{item.seoTitle}</p>
                           <p className="mt-3 text-xs font-bold uppercase tracking-wide text-gray-400">Meta Description</p>
                           <p className="mt-1 text-sm text-gray-600">{item.metaDescription}</p>
                         </div>
                       )}
-                      {item.validation_issues && <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700">{item.validation_issues}</div>}
+                      {item.validation_issues && <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700">{item.validation_issues}</div>}
                     </div>
-                  </div>
+                  )}
 
-                  <button onClick={() => setExpanded((prev) => ({ ...prev, [item.id]: !prev[item.id] }))} className="mt-4 text-sm font-bold text-forest-700 hover:text-forest-900">
+                  <button onClick={() => setExpanded((prev) => (prev[itemKey] ? {} : { [itemKey]: true }))} className="mt-4 text-sm font-bold text-forest-700 hover:text-forest-900">
                     {isOpen ? 'See Less' : 'See More'}
                   </button>
 
@@ -322,11 +323,11 @@ export default function ApprovalPage() {
           })}
         </div>
       )}
-
+{/* 
       <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
         <div className="flex items-center gap-2 text-sm font-bold text-forest-900"><Search className="h-4 w-4" /> Approval workflow</div>
         <p className="mt-2 text-sm text-gray-500">Approve & Post marks content as ready for immediate publishing. Approve & Schedule saves date/time and sends the item to Auto Publishing.</p>
-      </div>
+      </div> */}
     </div>
   );
 }
