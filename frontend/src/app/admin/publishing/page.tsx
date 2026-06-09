@@ -179,10 +179,10 @@ export default function PublishingPage() {
       </div>
 
       <div className="mb-6 grid gap-4 md:grid-cols-4">
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"><p className="text-xs font-bold uppercase tracking-wide text-gray-400">Ready to Publish</p><p className="mt-2 text-3xl font-extrabold text-sky-700">{items.filter(i => i.status === 'Ready to Publish').length}</p></div>
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"><p className="text-xs font-bold uppercase tracking-wide text-gray-400">Scheduled</p><p className="mt-2 text-3xl font-extrabold text-amber-700">{items.filter(i => i.status === 'Scheduled').length}</p></div>
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"><p className="text-xs font-bold uppercase tracking-wide text-gray-400">Published</p><p className="mt-2 text-3xl font-extrabold text-emerald-700">{items.filter(i => i.status === 'Published').length}</p></div>
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"><p className="text-xs font-bold uppercase tracking-wide text-gray-400">Failed</p><p className="mt-2 text-3xl font-extrabold text-red-700">{items.filter(i => i.status === 'Failed').length}</p></div>
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"><p className="text-xs font-bold uppercase tracking-wide text-gray-400 whitespace-nowrap">Ready to Publish</p><p className="mt-2 text-3xl font-extrabold text-sky-700">{items.filter(i => i.status === 'Ready to Publish').length}</p></div>
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"><p className="text-xs font-bold uppercase tracking-wide text-gray-400 whitespace-nowrap">Scheduled</p><p className="mt-2 text-3xl font-extrabold text-amber-700">{items.filter(i => i.status === 'Scheduled').length}</p></div>
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"><p className="text-xs font-bold uppercase tracking-wide text-gray-400 whitespace-nowrap">Published</p><p className="mt-2 text-3xl font-extrabold text-emerald-700">{items.filter(i => i.status === 'Published').length}</p></div>
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"><p className="text-xs font-bold uppercase tracking-wide text-gray-400 whitespace-nowrap">Failed</p><p className="mt-2 text-3xl font-extrabold text-red-700">{items.filter(i => i.status === 'Failed').length}</p></div>
       </div>
 
       <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -211,7 +211,7 @@ export default function PublishingPage() {
                       <td className="max-w-[300px] px-4 py-4 text-gray-500"><p className="line-clamp-2">{item.preview}</p></td>
                       <td className="px-4 py-4"><img src={item.image} alt="" className="h-14 w-20 rounded-xl object-cover" /></td>
                       <td className="px-4 py-4 text-gray-600"><Clock className="mr-1 inline h-3.5 w-3.5 text-forest-700" />{formatDate(item.scheduledAt)}</td>
-                      <td className="px-4 py-4"><span className={`rounded-full border px-3 py-1 text-xs font-bold ${statusClass(item.status)}`}>{item.status}</span></td>
+                      <td className="px-4 py-4"><span className={`whitespace-nowrap rounded-full border px-3 py-1 text-xs font-bold ${statusClass(item.status)}`}>{item.status}</span></td>
                       <td className="px-4 py-4"><div className="flex flex-wrap gap-2"><button onClick={() => publishNow(item)} disabled={busyId === item.id || item.status === 'Published'} className="inline-flex items-center gap-1.5 rounded-lg bg-forest-700 px-3 py-2 text-xs font-bold text-white hover:bg-forest-800 disabled:opacity-50">{busyId === item.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle className="h-3.5 w-3.5" />} Publish Now</button><button className="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700 hover:bg-amber-100"><Edit3 className="h-3.5 w-3.5" /> Edit Schedule</button><button className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50"><XCircle className="h-3.5 w-3.5" /> Cancel</button><button onClick={() => setSelected(item)} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-600 hover:bg-gray-50"><Eye className="h-3.5 w-3.5" /> View Full</button></div></td>
                     </tr>
                   );
