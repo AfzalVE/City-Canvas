@@ -3,6 +3,7 @@ from app.config import RSS_SCHEDULE_HOUR
 from app.config import RSS_SCHEDULE_MINUTE
 from app.config import RSS_SCHEDULE_TIMEZONE
 from app.database import SessionLocal
+from app.models import Feed
 from app.services.agent_log_service import AgentLogService
 from app.services.rss_service import RSSService
 from app.services.scoring_service import ScoringService
@@ -19,7 +20,25 @@ class SchedulerService:
 
         try:
             fetch_result = RSSService.fetch_all(db)
-            score_result = ScoringService.run(db, limit=5)
+            unscored_count = (
+                db.query(Feed)
+                .filter(
+                    Feed.approval_status == "pending",
+                    Feed.scoring_reason.is_(None)
+                )
+                .count()
+            )
+            if unscored_count > 0:
+                score_result = ScoringService.run(
+                    db,
+                    limit=unscored_count,
+                    only_unscored=True
+                )
+            else:
+                score_result = {
+                    "scored": 0,
+                    "shortlisted": []
+                }
             AgentLogService.log(
                 db,
                 "scheduler",

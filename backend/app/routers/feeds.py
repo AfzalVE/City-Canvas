@@ -19,6 +19,74 @@ router = APIRouter(
 )
 
 
+AI_APPROVAL_SCORE = 75
+MIN_AI_APPROVED_FEEDS = 15
+
+
+def get_ai_approved_ids(db: Session):
+
+    scored_feeds = (
+        db.query(Feed.id, Feed.relevance_score)
+        .filter(Feed.scoring_reason.isnot(None))
+        .order_by(
+            Feed.relevance_score.desc(),
+            Feed.created_at.desc()
+        )
+        .all()
+    )
+
+    high_scored_ids = [
+        feed_id
+        for feed_id, score in scored_feeds
+        if (score or 0) > AI_APPROVAL_SCORE
+    ]
+
+    if len(high_scored_ids) >= MIN_AI_APPROVED_FEEDS:
+        return set(high_scored_ids)
+
+    return {
+        feed_id
+        for feed_id, _score in scored_feeds[:MIN_AI_APPROVED_FEEDS]
+    }
+
+
+def build_feed_counts(db: Session):
+
+    total_fetched = db.query(Feed).count()
+    ai_approved_ids = get_ai_approved_ids(db)
+    scored_count = (
+        db.query(Feed)
+        .filter(Feed.scoring_reason.isnot(None))
+        .count()
+    )
+
+    human_counts = {
+        "pending": 0,
+        "approved": 0,
+        "rejected": 0,
+    }
+
+    if ai_approved_ids:
+        rows = (
+            db.query(Feed.approval_status)
+            .filter(Feed.id.in_(ai_approved_ids))
+            .all()
+        )
+
+        for status, in rows:
+            if status in human_counts:
+                human_counts[status] += 1
+
+    return {
+        "total": total_fetched,
+        "ai_approved": len(ai_approved_ids),
+        "ai_rejected": max(scored_count - len(ai_approved_ids), 0),
+        "pending": human_counts["pending"],
+        "approved": human_counts["approved"],
+        "rejected": human_counts["rejected"],
+    }
+
+
 # ======================================================
 # FETCH RSS
 # ======================================================
@@ -30,11 +98,19 @@ def fetch_rss_feeds(
 
     result = RSSService.fetch_all(db)
     inserted = int(result.get("inserted", 0))
+    unscored_count = (
+        db.query(Feed)
+        .filter(
+            Feed.approval_status == "pending",
+            Feed.scoring_reason.is_(None)
+        )
+        .count()
+    )
 
-    if inserted > 0:
+    if unscored_count > 0:
         scoring = ScoringService.run(
             db,
-            limit=min(inserted, 15),
+            limit=unscored_count,
             only_unscored=True
         )
     else:
@@ -44,6 +120,8 @@ def fetch_rss_feeds(
         }
 
     result["scoring"] = scoring
+    result["unscored_pending_before_scoring"] = unscored_count
+    result["counts"] = build_feed_counts(db)
 
     return {
         "message": "RSS fetched successfully",
@@ -60,16 +138,35 @@ def get_all_feeds(
     city: str | None = None,
     status: str | None = None,
     limit: int = 15,
+    scored_only: bool = False,
+    ai_status: str | None = None,
     db: Session = Depends(get_db)
 ):
 
     query = db.query(Feed)
+
+    ai_approved_ids = get_ai_approved_ids(db)
+
+    if ai_status == "approved":
+        if not ai_approved_ids:
+            return []
+
+        query = query.filter(Feed.id.in_(ai_approved_ids))
+
+    if ai_status == "rejected":
+        query = query.filter(Feed.scoring_reason.isnot(None))
+
+        if ai_approved_ids:
+            query = query.filter(Feed.id.notin_(ai_approved_ids))
 
     if city:
         query = query.filter(Feed.city == city)
 
     if status:
         query = query.filter(Feed.approval_status == status)
+
+    if scored_only:
+        query = query.filter(Feed.scoring_reason.isnot(None))
 
     if limit < 1:
         limit = 15
@@ -88,6 +185,18 @@ def get_all_feeds(
     )
 
     return feeds
+
+
+# ======================================================
+# FEED STATUS SUMMARY
+# ======================================================
+
+@router.get("/summary/counts")
+def get_feed_counts(
+    db: Session = Depends(get_db)
+):
+
+    return build_feed_counts(db)
 
 
 # ======================================================

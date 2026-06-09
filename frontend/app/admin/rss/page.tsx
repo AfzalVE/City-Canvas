@@ -17,7 +17,7 @@ import {
   XCircle,
   Zap,
 } from 'lucide-react';
-import { Feed, approveFeed, fetchFeeds, rejectFeed, runRssFetch } from '@/lib/admin-api';
+import { Feed, FeedCounts, approveFeed, fetchFeedCounts, fetchFeeds, rejectFeed, runRssFetch } from '@/lib/admin-api';
 
 /* ─── helpers ─────────────────────────────────────────────── */
 const CITY_IMAGES: Record<string, string> = {
@@ -53,7 +53,7 @@ function scoreClass(score: number) {
   return 'bg-purple-50 text-purple-700 border border-purple-200';
 }
 
-type StatusFilter = 'pending' | 'approved' | 'rejected' | 'all';
+type StatusFilter = 'pending' | 'approved' | 'rejected' | 'ai-rejected' | 'all';
 
 /* ─── Workflow Steps Banner ─────────────────────────────────── */
 const WORKFLOW_STEPS = [
@@ -139,6 +139,14 @@ function CitySources() {
 /* ─── Main Page ────────────────────────────────────────────── */
 export default function RSSPage() {
   const [feeds, setFeeds] = useState<Feed[]>([]);
+  const [feedCounts, setFeedCounts] = useState<FeedCounts>({
+    total: 0,
+    ai_approved: 0,
+    ai_rejected: 0,
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+  });
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('pending');
   const [cityFilter, setCityFilter] = useState('all');
   const [loading, setLoading] = useState(true);
@@ -152,8 +160,18 @@ export default function RSSPage() {
     setError('');
     setLoading(true);
     try {
-      const data = await fetchFeeds({ status: statusFilter === 'all' ? undefined : statusFilter });
+      const isAiRejected = statusFilter === 'ai-rejected';
+      const [data, counts] = await Promise.all([
+        fetchFeeds({
+          aiStatus: isAiRejected ? 'rejected' : 'approved',
+          status: statusFilter === 'all' || isAiRejected ? undefined : statusFilter,
+          limit: 100,
+          scoredOnly: true,
+        }),
+        fetchFeedCounts(),
+      ]);
       setFeeds(data);
+      setFeedCounts(counts);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to load RSS articles');
     } finally {
@@ -171,9 +189,11 @@ export default function RSSPage() {
       const result = await runRssFetch();
       const summary = result.result;
       const scoring = summary.scoring as { scored?: number } | undefined;
+      const counts = summary.counts;
       setMessage(
-        `✅ RSS fetch complete — Inserted ${summary.inserted ?? 0}, skipped ${summary.skipped ?? 0}. ` +
-        `AI auto-scored ${scoring?.scored ?? 0} new articles. Review below and approve for AI post generation.`
+        `RSS fetch complete - Total fetched ${counts?.total ?? summary.inserted ?? 0}. ` +
+        `AI approved ${counts?.ai_approved ?? 0} and AI rejected ${counts?.ai_rejected ?? 0}. ` +
+        `Scored ${scoring?.scored ?? 0} articles. Review below and approve for AI post generation.`
       );
       await load();
     } catch (err) {
@@ -217,8 +237,9 @@ export default function RSSPage() {
     [feeds, cityFilter]
   );
 
-  const topFeeds = filteredFeeds.slice(0, 10);
-  const pendingCount = feeds.filter(f => f.approval_status === 'pending').length;
+  const visibleFeeds = filteredFeeds;
+  const pendingCount = feedCounts.pending;
+  const isAiRejectedView = statusFilter === 'ai-rejected';
 
   return (
     <div className="p-6 lg:p-8">
@@ -267,12 +288,14 @@ export default function RSSPage() {
       )}
 
       {/* Stats row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
         {[
-          { label: 'Total Fetched', value: feeds.length, color: 'text-forest-700' },
-          { label: 'Pending Review', value: pendingCount, color: 'text-amber-600' },
-          { label: 'Approved', value: feeds.filter(f => f.approval_status === 'approved').length, color: 'text-green-600' },
-          { label: 'Rejected', value: feeds.filter(f => f.approval_status === 'rejected').length, color: 'text-red-500' },
+          { label: 'Total fetched', value: feedCounts.total, color: 'text-forest-700' },
+          { label: 'AI approved', value: feedCounts.ai_approved, color: 'text-green-600' },
+          { label: 'AI rejected', value: feedCounts.ai_rejected, color: 'text-red-500' },
+          { label: 'Human approval pending', value: pendingCount, color: 'text-amber-600' },
+          { label: 'Human approved', value: feedCounts.approved, color: 'text-green-600' },
+          { label: 'Human rejected', value: feedCounts.rejected, color: 'text-red-500' },
         ].map((s) => (
           <div key={s.label} className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 text-center">
             <div className={`text-2xl font-serif font-bold ${s.color}`}>{s.value}</div>
@@ -284,17 +307,23 @@ export default function RSSPage() {
       {/* Filters */}
       <div className="flex flex-wrap gap-3 mb-5">
         <div className="flex gap-2 flex-wrap">
-          {(['pending', 'approved', 'rejected', 'all'] as const).map((status) => (
+          {([
+            ['pending', 'Pending'],
+            ['approved', 'Approved'],
+            ['rejected', 'Rejected'],
+            ['ai-rejected', 'AI Rejected'],
+            ['all', 'All'],
+          ] as const).map(([status, label]) => (
             <button
               key={status}
               onClick={() => setStatusFilter(status)}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors capitalize ${
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
                 statusFilter === status
                   ? 'bg-forest-700 text-white'
                   : 'bg-white text-forest-700 border border-gray-200 hover:bg-gray-50'
               }`}
             >
-              {status}
+              {label}
             </button>
           ))}
         </div>
@@ -317,10 +346,10 @@ export default function RSSPage() {
 
       <div className="flex items-center justify-between mb-4">
         <h2 className="font-serif text-xl text-forest-800">
-          Top Scored Articles
-          <span className="text-sm font-sans text-forest-400 ml-2">({filteredFeeds.length} found)</span>
+          {isAiRejectedView ? 'AI Rejected Articles' : 'Top Scored Articles'}
+          <span className="text-sm font-sans text-forest-400 ml-2">({visibleFeeds.length} found)</span>
         </h2>
-        {pendingCount > 0 && (
+        {!isAiRejectedView && pendingCount > 0 && (
           <span className="text-xs bg-amber-100 text-amber-700 border border-amber-200 px-3 py-1 rounded-full font-medium">
             {pendingCount} pending review
           </span>
@@ -335,7 +364,7 @@ export default function RSSPage() {
         </div>
       ) : (
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {topFeeds.map((feed) => {
+          {visibleFeeds.map((feed) => {
             const score = Math.round(feed.relevance_score || 0);
             const pending = feed.approval_status === 'pending';
             const isAmsterdam = feed.city === 'Amsterdam';
@@ -408,7 +437,11 @@ export default function RSSPage() {
 
                   {/* Actions */}
                   <div className="mt-auto">
-                    {pending ? (
+                    {isAiRejectedView ? (
+                      <div className="text-center text-xs font-semibold py-2 rounded-lg bg-red-50 text-red-600 border border-red-200">
+                        AI rejected by scoring agent
+                      </div>
+                    ) : pending ? (
                       <div>
                         <p className="text-xs text-forest-500 mb-2 flex items-center gap-1">
                           <Sparkles className="w-3 h-3 text-gold-500" />
@@ -447,7 +480,7 @@ export default function RSSPage() {
             );
           })}
 
-          {topFeeds.length === 0 && !loading && (
+          {visibleFeeds.length === 0 && !loading && (
             <div className="md:col-span-3 text-center py-20 text-forest-400">
               <Star className="w-10 h-10 mx-auto mb-3 opacity-20" />
               <p className="font-serif text-lg">No articles found</p>

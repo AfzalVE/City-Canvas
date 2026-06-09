@@ -39,6 +39,15 @@ export type FeedApprovalResponse = {
   };
 };
 
+export type FeedCounts = {
+  total: number;
+  ai_approved: number;
+  ai_rejected: number;
+  pending: number;
+  approved: number;
+  rejected: number;
+};
+
 export type GeneratedContent = {
   id: number;
   feed_id: number;
@@ -194,16 +203,31 @@ export async function adminFetch<T>(
   return data as T;
 }
 
-export async function fetchFeeds(params: { city?: string; status?: string } = {}) {
+export async function fetchFeeds(
+  params: {
+    aiStatus?: 'approved' | 'rejected';
+    city?: string;
+    status?: string;
+    limit?: number;
+    scoredOnly?: boolean;
+  } = {}
+) {
   const search = new URLSearchParams();
+  if (params.aiStatus) search.set('ai_status', params.aiStatus);
   if (params.city) search.set('city', params.city);
   if (params.status) search.set('status', params.status);
+  if (params.limit) search.set('limit', String(params.limit));
+  if (params.scoredOnly) search.set('scored_only', 'true');
   const suffix = search.toString() ? `?${search.toString()}` : '';
   return adminFetch<Feed[]>(`/rss-feeds/${suffix}`);
 }
 
+export function fetchFeedCounts() {
+  return adminFetch<FeedCounts>('/rss-feeds/summary/counts');
+}
+
 export function runRssFetch() {
-  return adminFetch<{ message: string; result: Record<string, unknown> }>('/rss-feeds/fetch', {
+  return adminFetch<{ message: string; result: Record<string, unknown> & { counts?: FeedCounts } }>('/rss-feeds/fetch', {
     method: 'POST',
     body: JSON.stringify({}),
   });
