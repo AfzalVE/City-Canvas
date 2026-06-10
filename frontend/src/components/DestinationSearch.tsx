@@ -2,15 +2,31 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Search, MapPin, Calendar, Users, Wallet, Compass } from 'lucide-react';
 
+const destinationOptions = ['Paris', 'Amsterdam', 'Other'];
+const parisAttractions = ['Eiffel Tower', 'Louvre Museum', 'Seine River Cruise', 'Montmartre'];
+const amsterdamAttractions = ['Canal Cruise', 'Rijksmuseum', 'Anne Frank House', 'Van Gogh Museum'];
+const genericAttractions = ['City Tour', 'Food Market', 'Local Culture', 'Other'];
+
 export default function DestinationSearch() {
-  const [destination, setDestination] = useState('');
+  const [destination, setDestination] = useState('Paris');
+  const [customDestination, setCustomDestination] = useState('');
   const [attraction, setAttraction] = useState('');
+  const [customAttraction, setCustomAttraction] = useState('');
   const [travelType, setTravelType] = useState('');
   const [travelDate, setTravelDate] = useState('');
   const [budget, setBudget] = useState('');
 
+  const destinationValue = destination === 'Other' ? customDestination : destination;
+  const attractionOptions =
+    destination === 'Paris'
+      ? parisAttractions
+      : destination === 'Amsterdam'
+      ? amsterdamAttractions
+      : genericAttractions;
+  const attractionValue = attraction === 'Other' ? customAttraction : attraction;
+
   const handleSearch = () => {
-    console.log({ destination, attraction, travelType, travelDate, budget });
+    console.log({ destination: destinationValue, attraction: attractionValue, travelType, travelDate, budget });
   };
 
   return (
@@ -28,27 +44,65 @@ export default function DestinationSearch() {
               <MapPin className="h-4 w-4 text-[var(--gold)]" />
               Destination
             </label>
-            <input
-              type="text"
-              placeholder="Where to?"
+            <select
               value={destination}
-              onChange={(e) => setDestination(e.target.value)}
+              onChange={(e) => {
+                setDestination(e.target.value);
+                setCustomDestination('');
+                setAttraction('');
+                setCustomAttraction('');
+              }}
               className="w-full rounded-lg border border-gray-200 bg-[var(--cream)] px-4 py-3 text-sm outline-none transition-all focus:border-[var(--gold)] focus:ring-2 focus:ring-[var(--gold)]/20"
-            />
+            >
+              <option value="">Select destination</option>
+              {destinationOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+            {destination === 'Other' && (
+              <input
+                type="text"
+                placeholder="Enter your destination"
+                value={customDestination}
+                onChange={(e) => setCustomDestination(e.target.value)}
+                className="w-full rounded-lg border border-gray-200 bg-[var(--cream)] px-4 py-3 text-sm outline-none transition-all focus:border-[var(--gold)] focus:ring-2 focus:ring-[var(--gold)]/20"
+              />
+            )}
           </div>
+
           <div className="space-y-2">
             <label className="flex items-center gap-2 text-sm font-medium text-[var(--warm-gray)]">
               <Compass className="h-4 w-4 text-[var(--gold)]" />
               Attraction
             </label>
-            <input
-              type="text"
-              placeholder="What to see?"
+            <select
               value={attraction}
-              onChange={(e) => setAttraction(e.target.value)}
+              onChange={(e) => {
+                setAttraction(e.target.value);
+                setCustomAttraction('');
+              }}
               className="w-full rounded-lg border border-gray-200 bg-[var(--cream)] px-4 py-3 text-sm outline-none transition-all focus:border-[var(--gold)] focus:ring-2 focus:ring-[var(--gold)]/20"
-            />
+            >
+              <option value="">Select attraction</option>
+              {attractionOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+            {attraction === 'Other' && (
+              <input
+                type="text"
+                placeholder="Enter attraction"
+                value={customAttraction}
+                onChange={(e) => setCustomAttraction(e.target.value)}
+                className="w-full rounded-lg border border-gray-200 bg-[var(--cream)] px-4 py-3 text-sm outline-none transition-all focus:border-[var(--gold)] focus:ring-2 focus:ring-[var(--gold)]/20"
+              />
+            )}
           </div>
+
           <div className="space-y-2">
             <label className="flex items-center gap-2 text-sm font-medium text-[var(--warm-gray)]">
               <Users className="h-4 w-4 text-[var(--gold)]" />
@@ -67,6 +121,7 @@ export default function DestinationSearch() {
               <option value="solo">Solo</option>
             </select>
           </div>
+
           <div className="space-y-2">
             <label className="flex items-center gap-2 text-sm font-medium text-[var(--warm-gray)]">
               <Calendar className="h-4 w-4 text-[var(--gold)]" />
@@ -79,6 +134,7 @@ export default function DestinationSearch() {
               className="w-full rounded-lg border border-gray-200 bg-[var(--cream)] px-4 py-3 text-sm outline-none transition-all focus:border-[var(--gold)] focus:ring-2 focus:ring-[var(--gold)]/20"
             />
           </div>
+
           <div className="space-y-2">
             <label className="flex items-center gap-2 text-sm font-medium text-[var(--warm-gray)]">
               <Wallet className="h-4 w-4 text-[var(--gold)]" />

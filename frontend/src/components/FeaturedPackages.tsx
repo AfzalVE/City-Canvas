@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+﻿import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Star,
@@ -182,16 +182,6 @@ export default function FeaturedPackages() {
                             Book Now
                             <ArrowRight className="h-4 w-4" />
                           </button>
-
-                          <a
-                            href={pkg.demoLink ?? '#'}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-2 rounded-lg border border-[var(--forest-green)] px-6 py-2.5 text-sm font-medium text-[var(--forest-green)] transition-all hover:bg-[var(--forest-green)] hover:text-[var(--cream)]"
-                          >
-                            View Demo
-                            <ArrowRight className="h-4 w-4" />
-                          </a>
                         </div>
                       </div>
                     </div>
