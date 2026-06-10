@@ -256,17 +256,17 @@ export default function ApprovalPage() {
         </div>
       </div>
 
-      <div className="mb-6 grid gap-4 md:grid-cols-4">
+      {/* <div className="mb-6 grid gap-4 md:grid-cols-4">
         <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"><p className="text-xs font-bold uppercase tracking-wide text-gray-400">Content types</p><p className="mt-2 text-2xl font-extrabold text-forest-900">5</p><p className="text-xs text-gray-500">Blog, Facebook, Instagram, LinkedIn, X</p></div>
         <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"><p className="text-xs font-bold uppercase tracking-wide text-gray-400">AI Images</p><p className="mt-2 text-2xl font-extrabold text-forest-900">Ready</p><p className="text-xs text-gray-500">One image preview per card</p></div>
         <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"><p className="text-xs font-bold uppercase tracking-wide text-gray-400">SEO Metadata</p><p className="mt-2 text-2xl font-extrabold text-emerald-700">Included</p><p className="text-xs text-gray-500">SEO title and meta description</p></div>
         <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"><p className="text-xs font-bold uppercase tracking-wide text-gray-400">Validation</p><p className="mt-2 text-2xl font-extrabold text-amber-700">Admin</p><p className="text-xs text-gray-500">Admin decides before publishing</p></div>
-      </div>
+      </div> */}
 
       {loading ? (
         <div className="flex items-center justify-center rounded-2xl border border-gray-200 bg-white py-20 text-forest-700 shadow-sm"><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading generated content...</div>
       ) : (
-        <div className="grid gap-5 lg:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-5 lg:grid-cols-2 xl:grid-cols-3 items-start">
           {items.map((item) => {
             const itemKey = `${item.id}-${item.platform}`;
             const meta = platformMeta[item.platform] || platformMeta.blog;

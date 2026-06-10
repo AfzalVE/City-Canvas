@@ -1,28 +1,38 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { CheckCircle, ChevronDown, ChevronUp, ExternalLink, Globe, Loader2, Search, Star, XCircle } from 'lucide-react';
-import { Feed, approveFeed, fetchFeeds, rejectFeed, runScoring } from '../../../lib/admin-api';
+import { useState, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import {
+  CheckCircle,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  ExternalLink,
+  Globe,
+  Loader2,
+  RefreshCw,
+  Search,
+  XCircle,
+} from 'lucide-react';
+import { BlogPost, fetchBlogPosts, approveBlogPost, rejectBlogPost } from '../../../lib/admin-api';
 
 type Filter = 'all' | 'pending' | 'approved' | 'rejected';
 
 export default function VerificationPage() {
-  const [articles, setArticles] = useState<Feed[]>([]);
-  const [expanded, setExpanded] = useState<number | null>(null);
-  const [notes, setNotes] = useState<Record<number, string>>({});
+  const [articles, setArticles] = useState<BlogPost[]>([]);
+  const [expanded, setExpanded] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>('pending');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
-  const [busyId, setBusyId] = useState<number | null>(null);
-  const [checking, setChecking] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
 
-  async function load() {
+  async function loadData() {
     setError('');
     setLoading(true);
     try {
-      const data = await fetchFeeds({ status: filter === 'all' ? undefined : filter });
+      const data = await fetchBlogPosts(filter === 'all' ? undefined : filter);
       setArticles(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to load verification queue');
@@ -32,205 +42,226 @@ export default function VerificationPage() {
   }
 
   useEffect(() => {
-    load();
+    loadData();
   }, [filter]);
 
-  async function updateStatus(feedId: number, status: 'approved' | 'rejected') {
-    setBusyId(feedId);
+  async function handleApprove(id: string) {
+    setBusyId(id);
     setError('');
     setMessage('');
     try {
-      if (status === 'approved') {
-        await approveFeed(feedId);
-      } else {
-        await rejectFeed(feedId);
-      }
-      setMessage(`Article ${status}.`);
-      await load();
+      await approveBlogPost(id);
+      setMessage('Article approved and AI content generated!');
+      await loadData();
     } catch (err) {
-      setError(err instanceof Error ? err.message : `Unable to ${status} article`);
+      setError(err instanceof Error ? err.message : 'Failed to approve');
     } finally {
       setBusyId(null);
     }
   }
 
-  async function checkArticles() {
-    setChecking(true);
+  async function handleReject(id: string) {
+    setBusyId(id);
     setError('');
     setMessage('');
     try {
-      const result = await runScoring();
-      setMessage(result.message);
-      await load();
+      await rejectBlogPost(id);
+      setMessage('Article rejected.');
+      await loadData();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Checking failed');
+      setError(err instanceof Error ? err.message : 'Failed to reject');
     } finally {
-      setChecking(false);
+      setBusyId(null);
     }
   }
 
   const filtered = useMemo(() => {
     const value = search.toLowerCase();
-    return articles.filter((article) => {
-      return (
-        !value ||
-        article.title.toLowerCase().includes(value) ||
-        (article.source_name || '').toLowerCase().includes(value)
-      );
+    return articles.filter(article => {
+      return !value || article.title.toLowerCase().includes(value);
     });
   }, [articles, search]);
 
-  const pendingCount = articles.filter((article) => article.approval_status === 'pending').length;
+  const pendingCount = articles.filter(a => a.status === 'pending').length;
 
   return (
-    <div className="p-8">
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+    <div className="min-h-screen bg-gradient-to-br from-cream-50 to-gray-100 p-6 lg:p-8">
+      {/* Header */}
+      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="font-serif text-3xl text-forest-800 mb-1">Verification Queue</h1>
-          <p className="text-sm text-forest-500">{pendingCount} articles awaiting review</p>
+          <h1 className="font-serif text-3xl font-bold text-forest-800">Verification Queue</h1>
+          <p className="mt-1 text-sm text-forest-500">
+            {pendingCount} articles awaiting review
+          </p>
         </div>
-        <button onClick={checkArticles} disabled={checking} className="btn-secondary text-xs disabled:opacity-70">
-          {checking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Star className="w-4 h-4" />}
-          Run Checking
+        <button
+          onClick={loadData}
+          disabled={loading}
+          className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-forest-700 hover:bg-gray-50"
+        >
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          Refresh
         </button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 mb-6">
+      {/* Message */}
+      {message && (
+        <div className="mb-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+          <CheckCircle className="mr-2 inline h-4 w-4" />
+          {message}
+        </div>
+      )}
+      {error && (
+        <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {error}
+        </div>
+      )}
+
+      {/* Search and Filters */}
+      <div className="mb-6 flex flex-wrap items-center gap-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             placeholder="Search articles..."
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            className="pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-forest-400 w-64"
+            onChange={e => setSearch(e.target.value)}
+            className="pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-forest-400 w-64 bg-white"
           />
         </div>
         <div className="flex gap-2">
-          {([
-            ['all', 'All'],
-            ['pending', 'Pending'],
-            ['approved', 'Approved'],
-            ['rejected', 'Rejected'],
-          ] as const).map(([value, label]) => (
+          {(['all', 'pending', 'approved', 'rejected'] as const).map(value => (
             <button
               key={value}
               onClick={() => setFilter(value)}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                filter === value ? 'bg-forest-600 text-cream-100' : 'bg-white text-forest-600 border border-gray-200 hover:bg-gray-50'
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                filter === value
+                  ? 'bg-forest-700 text-white'
+                  : 'bg-white text-forest-600 border border-gray-200 hover:bg-gray-50'
               }`}
             >
-              {label}
+              {value.charAt(0).toUpperCase() + value.slice(1)}
             </button>
           ))}
         </div>
       </div>
 
-      {message && <div className="mb-4 rounded-lg bg-green-50 border border-green-100 px-4 py-3 text-sm text-green-700">{message}</div>}
-      {error && <div className="mb-4 rounded-lg bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-700">{error}</div>}
-
-      <div className="space-y-3">
-        {loading ? (
-          <div className="text-center py-16 text-forest-400">
-            <Loader2 className="w-6 h-6 animate-spin mx-auto mb-3" />
-            Loading articles
-          </div>
-        ) : filtered.map((article) => (
-          <div
-            key={article.id}
-            className={`bg-white rounded-xl border shadow-sm overflow-hidden transition-all ${
-              article.approval_status === 'approved' ? 'border-green-200' : article.approval_status === 'rejected' ? 'border-red-200' : 'border-gray-200'
-            }`}
+      {/* Articles List */}
+      {loading ? (
+        <div className="flex items-center justify-center rounded-2xl border border-gray-200 bg-white py-20 text-forest-400 shadow-sm">
+          <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading articles...
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="rounded-2xl border border-gray-200 bg-white py-20 text-center shadow-sm">
+          <CheckCircle className="mx-auto mb-3 h-12 w-12 text-gray-300" />
+          <p className="font-serif text-lg text-gray-600">No articles found</p>
+          <p className="mt-1 text-sm text-gray-400">Change your filters or collect RSS articles</p>
+          <Link
+            to="/admin/rss"
+            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-forest-700 px-4 py-2 text-xs font-semibold text-white hover:bg-forest-800"
           >
-            <div className="p-5">
-              <div className="flex items-start gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex flex-wrap items-center gap-2 mb-2">
-                    <span className={`tag text-xs ${article.city === 'Amsterdam' ? 'bg-blue-50 text-blue-700' : 'bg-rose-50 text-rose-700'}`}>
-                      {article.city || 'Unknown'}
-                    </span>
-                    <span className="inline-flex items-center rounded-md bg-[var(--forest-green)]/10 px-2 py-0.5 text-xs font-medium text-[var(--forest-green)]">{article.source_name ? 'General' : 'RSS'}</span>
-                    <span className="text-xs text-gray-400 flex items-center gap-1">
-                      <Globe className="w-3 h-3" />{article.source_name || 'RSS source'}
-                    </span>
-                  </div>
-                  <h3 className="font-serif text-base text-forest-800 mb-1">{article.title}</h3>
-                  <div className="flex items-center gap-1 text-xs text-gray-400">
-                    <Star className="w-3 h-3 text-gold-500" />
-                    <span>Relevance:</span>
-                    <span className={`font-semibold ${(article.relevance_score || 0) >= 70 ? 'text-green-600' : (article.relevance_score || 0) >= 50 ? 'text-amber-600' : 'text-red-500'}`}>
-                      {Math.round(article.relevance_score || 0)}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  {article.approval_status === 'pending' ? (
-                    <>
-                      <button
-                        onClick={() => updateStatus(article.id, 'approved')}
-                        disabled={busyId === article.id}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-xs font-medium transition-colors disabled:opacity-60"
-                      >
-                        {busyId === article.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
-                        Approve
-                      </button>
-                      <button
-                        onClick={() => updateStatus(article.id, 'rejected')}
-                        disabled={busyId === article.id}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-medium transition-colors disabled:opacity-60"
-                      >
-                        <XCircle className="w-3.5 h-3.5" /> Reject
-                      </button>
-                    </>
-                  ) : (
-                    <span className={article.approval_status === 'approved' ? 'status-approved' : 'status-rejected'}>
-                      {article.approval_status}
-                    </span>
+            Go to RSS Collection
+          </Link>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map(article => (
+            <div
+              key={article.id}
+              className={`bg-white rounded-xl border shadow-sm overflow-hidden transition-all ${
+                article.status === 'approved'
+                  ? 'border-green-200'
+                  : article.status === 'rejected'
+                  ? 'border-red-200'
+                  : 'border-gray-200'
+              }`}
+            >
+              <div className="p-5">
+                <div className="flex items-start gap-4">
+                  {article.image_url && (
+                    <img
+                      src={article.image_url}
+                      alt=""
+                      className="w-16 h-16 rounded-lg object-cover shrink-0"
+                    />
                   )}
-                  <button
-                    onClick={() => setExpanded(expanded === article.id ? null : article.id)}
-                    className="p-1.5 text-gray-400 hover:text-forest-600 hover:bg-gray-50 rounded transition-colors"
-                  >
-                    {expanded === article.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                  </button>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <span className="inline-flex items-center gap-1 rounded-md bg-forest-50 px-2 py-0.5 text-xs font-medium text-forest-700">
+                        <Globe className="h-3 w-3" />
+                        {article.link ? new URL(article.link).hostname : 'RSS Feed'}
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        <Clock className="mr-1 inline h-3 w-3" />
+                        {new Date(article.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <h3 className="font-serif text-base text-forest-800 mb-1">{article.title}</h3>
+                    {article.description && (
+                      <p className="text-sm text-gray-500 line-clamp-2">{article.description}</p>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    {article.status === 'pending' ? (
+                      <>
+                        <button
+                          onClick={() => handleApprove(article.id)}
+                          disabled={busyId === article.id}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-xs font-medium transition-colors disabled:opacity-60"
+                        >
+                          {busyId === article.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => handleReject(article.id)}
+                          disabled={busyId === article.id}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-medium transition-colors disabled:opacity-60"
+                        >
+                          <XCircle className="w-3.5 h-3.5" /> Reject
+                        </button>
+                      </>
+                    ) : (
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                          article.status === 'approved'
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-red-100 text-red-600'
+                        }`}
+                      >
+                        {article.status}
+                      </span>
+                    )}
+                    <button
+                      onClick={() => setExpanded(expanded === article.id ? null : article.id)}
+                      className="p-1.5 text-gray-400 hover:text-forest-600 hover:bg-gray-50 rounded transition-colors"
+                    >
+                      {expanded === article.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
               </div>
+
+              {expanded === article.id && (
+                <div className="border-t border-gray-100 p-5 bg-gray-50 space-y-4">
+                  <p className="text-sm text-forest-600 leading-relaxed">
+                    {article.content || article.description || 'No detailed content available.'}
+                  </p>
+                  {article.link && (
+                    <a
+                      href={article.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs text-forest-600 hover:text-forest-800 font-medium"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" /> View original article
+                    </a>
+                  )}
+                </div>
+              )}
             </div>
-
-            {expanded === article.id && (
-              <div className="border-t border-gray-100 p-5 bg-gray-50 space-y-4">
-                <p className="text-sm text-forest-600 leading-relaxed">{article.summary || 'No summary was provided by this RSS item.'}</p>
-                <a
-                  href={article.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-xs text-forest-600 hover:text-forest-800 font-medium"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" /> View original article
-                </a>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1.5">Reviewer Notes</label>
-                  <textarea
-                    value={notes[article.id] || ''}
-                    onChange={(event) => setNotes((current) => ({ ...current, [article.id]: event.target.value }))}
-                    placeholder="Add notes about this article..."
-                    rows={2}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-forest-400 resize-none"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        ))}
-
-        {!loading && filtered.length === 0 && (
-          <div className="text-center py-16 text-forest-400">
-            <CheckCircle className="w-12 h-12 mx-auto mb-3 opacity-30" />
-            <p className="font-serif text-lg">No articles found</p>
-            <p className="text-sm mt-1">Change your filters or run RSS collection.</p>
-          </div>
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

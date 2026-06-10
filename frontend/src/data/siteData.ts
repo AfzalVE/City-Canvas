@@ -56,7 +56,7 @@ export const destinations: Destination[] = [
     id: '1',
     name: 'Amsterdam',
     description: 'Canals, culture, and endless charm await in this historic Dutch capital.',
-    image: 'https://images.pexels.com/photos/1388030/pexels-photo-1388030.jpeg?auto=compress&cs=tinysrgb&w=800',
+    image: 'https://media.istockphoto.com/id/1352073906/photo/amsterdam-downtown-amstel-river-old-houses-and-a-bridge-nice-view-of-the-famous-city-of.jpg?s=612x612&w=0&k=20&c=0-l6Lf8A_QM0Nd-YPLrp5qUn8S1uc0TFKETH8TU9JcU=',
     rating: 4.9,
     reviews: 12500,
     startingPrice: 899,
@@ -65,7 +65,7 @@ export const destinations: Destination[] = [
     id: '2',
     name: 'Paris',
     description: 'The City of Light beckons with romance, art, and world-class cuisine.',
-    image: 'https://images.pexels.com/photos/532826/pexels-photo-532826.jpeg?auto=compress&cs=tinysrgb&w=800',
+    image: 'https://t4.ftcdn.net/jpg/02/96/15/35/360_F_296153501_B34baBHDkFXbl5RmzxpiOumF4LHGCvAE.jpg',
     rating: 4.8,
     reviews: 18700,
     startingPrice: 1099,
@@ -74,7 +74,7 @@ export const destinations: Destination[] = [
     id: '3',
     name: 'Rome',
     description: 'Walk through millennia of history in the Eternal City.',
-    image: 'https://images.pexels.com/photos/753626/pexels-photo-753626.jpeg?auto=compress&cs=tinysrgb&w=800',
+    image: 'https://media.istockphoto.com/id/539115110/photo/colosseum-in-rome-and-morning-sun-italy.jpg?s=612x612&w=0&k=20&c=9NtFxHI3P2IBWRY9t0NrfPZPR4iusHmVLbXg2Cjv9Fs=',
     rating: 4.7,
     reviews: 15300,
     startingPrice: 999,
@@ -83,7 +83,7 @@ export const destinations: Destination[] = [
     id: '4',
     name: 'Venice',
     description: 'Lose yourself in the labyrinth of canals and bridges.',
-    image: 'https://images.pexels.com/photos/208701/pexels-photo-208701.jpeg?auto=compress&cs=tinysrgb&w=800',
+    image: 'https://media.istockphoto.com/id/1388401069/photo/grand-canal-in-venice.jpg?s=612x612&w=0&k=20&c=QQTS8HfdHCTGPYom_VlbANS7s3jEA45UgSuLMgfL6XQ=',
     rating: 4.8,
     reviews: 11200,
     startingPrice: 1199,
@@ -92,7 +92,7 @@ export const destinations: Destination[] = [
     id: '5',
     name: 'Switzerland',
     description: 'Alpine majesty, pristine lakes, and chocolate-box villages.',
-    image: 'https://images.pexels.com/photos/1287145/pexels-photo-1287145.jpeg?auto=compress&cs=tinysrgb&w=800',
+    image: 'https://dujour.com/wp-content/uploads/5/5ccc566afffd-500x600.jpg',
     rating: 4.9,
     reviews: 9800,
     startingPrice: 1299,
@@ -101,7 +101,7 @@ export const destinations: Destination[] = [
     id: '6',
     name: 'Barcelona',
     description: 'Gaudi architecture, Mediterranean beaches, and vibrant nightlife.',
-    image: 'https://images.pexels.com/photos/1388030/pexels-photo-1388030.jpeg?auto=compress&cs=tinysrgb&w=800',
+    image: 'https://cdn-imgix.headout.com/media/images/db554dd0adf4544af1d08e5577142e14-barcelona-city-01.jpg?auto=compress%2Cformat&w=600&h=600&q=72&crop=faces&fit=crop',
     rating: 4.7,
     reviews: 13400,
     startingPrice: 799,
@@ -169,7 +169,7 @@ export const parisAttractions: Attraction[] = [
   {
     id: 'p1',
     name: 'Eiffel Tower',
-    image: 'https://images.pexels.com/photos/532826/pexels-photo-532826.jpeg?auto=compress&cs=tinysrgb&w=600',
+    image: 'https://www.aparisguide.com/eiffeltower/eiffel-tower003.jpg',
     rating: 4.8,
     reviews: 15600,
     duration: '2.5 hours',
@@ -178,7 +178,7 @@ export const parisAttractions: Attraction[] = [
   {
     id: 'p2',
     name: 'Louvre Museum',
-    image: 'https://images.pexels.com/photos/2363/pexels-photo.jpg?auto=compress&cs=tinysrgb&w=600',
+    image: 'https://media.istockphoto.com/id/499655986/photo/louvre-rainy-winter.jpg?s=612x612&w=0&k=20&c=bcjPn1GrxY6eJNYI50t-Y7-bWC8YciAgObLAuP6jMPg=',
     rating: 4.9,
     reviews: 18900,
     duration: '4 hours',
@@ -187,7 +187,7 @@ export const parisAttractions: Attraction[] = [
   {
     id: 'p3',
     name: 'Notre-Dame Cathedral',
-    image: 'https://images.pexels.com/photos/2082103/pexels-photo-2082103.jpeg?auto=compress&cs=tinysrgb&w=600',
+    image: 'https://publisher-ncreg.s3.us-east-2.amazonaws.com/pb-ncregister/swp/hv9hms/media/2024120214120_f020ce5433f45cee4a3c596c407fbff6f3e383292f417c4ad2a5bd7f8d73674c.jpg',
     rating: 4.7,
     reviews: 11200,
     duration: '1.5 hours',
@@ -196,7 +196,7 @@ export const parisAttractions: Attraction[] = [
   {
     id: 'p4',
     name: 'Arc de Triomphe',
-    image: 'https://images.pexels.com/photos/532826/pexels-photo-532826.jpeg?auto=compress&cs=tinysrgb&w=600',
+    image: 'https://choosewhere.com/public/images/WFvDxf0/crop_and_zoom_848x560_0x7_2000x1320/shutterstock_1872867376.webp',
     rating: 4.7,
     reviews: 8900,
     duration: '1 hour',
@@ -205,7 +205,7 @@ export const parisAttractions: Attraction[] = [
   {
     id: 'p5',
     name: 'Seine River Cruise',
-    image: 'https://images.pexels.com/photos/2082103/pexels-photo-2082103.jpeg?auto=compress&cs=tinysrgb&w=600',
+    image: 'https://resources.thomascook.in/images/holidays/sightSeeing/AdobeStock_4090360_Seine_River_Cruise.jpg',
     rating: 4.8,
     reviews: 7600,
     duration: '1.5 hours',
@@ -214,7 +214,7 @@ export const parisAttractions: Attraction[] = [
   {
     id: 'p6',
     name: 'Montmartre',
-    image: 'https://images.pexels.com/photos/2082103/pexels-photo-2082103.jpeg?auto=compress&cs=tinysrgb&w=600',
+    image: 'https://emmajaneexplores.com/wp-content/uploads/2016/10/Untitled-design-27.png',
     rating: 4.6,
     reviews: 6300,
     duration: '3 hours',
@@ -233,6 +233,7 @@ export const travelPackages: TravelPackage[] = [
     startingPrice: 2499,
     highlights: ['Private Canal Cruise', '5-Star Boutique Hotel', 'Michelin Dining', 'Personal Concierge'],
     category: 'Luxury Packages',
+    demoLink: '/demo/luxury-amsterdam',
   },
   {
     id: 'tp2',
@@ -244,6 +245,7 @@ export const travelPackages: TravelPackage[] = [
     startingPrice: 1899,
     highlights: ['Disneyland Paris', 'Eiffel Tower Skip-Line', 'Family-Friendly Hotels', 'Kid Tours'],
     category: 'Family Tours',
+    demoLink: '/demo/paris-family',
   },
   {
     id: 'tp3',
@@ -255,6 +257,7 @@ export const travelPackages: TravelPackage[] = [
     startingPrice: 2199,
     highlights: ['Gondola Ride', 'Private Dinner', 'Luxury Suite', 'Sunset Tour'],
     category: 'Romantic Getaways',
+    demoLink: '/demo/venice-romance',
   },
   {
     id: 'tp4',
@@ -266,6 +269,7 @@ export const travelPackages: TravelPackage[] = [
     startingPrice: 2799,
     highlights: ['Helicopter Tour', 'Mountain Hiking', 'Chalet Stay', 'Ski Pass'],
     category: 'Adventure Tours',
+    demoLink: '/demo/swiss-alps',
   },
   {
     id: 'tp5',
@@ -277,6 +281,7 @@ export const travelPackages: TravelPackage[] = [
     startingPrice: 1299,
     highlights: ['Sagrada Familia', 'Tapas Tour', 'Beach Access', 'City Pass'],
     category: 'City Breaks',
+    demoLink: '/demo/barcelona-city',
   },
 ];
 
