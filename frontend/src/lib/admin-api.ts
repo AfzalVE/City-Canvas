@@ -1,5 +1,5 @@
 // Admin API mock data and functions for Virtual Holidays content automation
-
+ 
 export interface Feed {
   id: number;
   title: string;
@@ -14,7 +14,7 @@ export interface Feed {
   relevance_score: number | null;
   scoring_reason: string | null;
 }
-
+ 
 export interface FeedCounts {
   total: number;
   ai_approved: number;
@@ -23,7 +23,7 @@ export interface FeedCounts {
   approved: number;
   rejected: number;
 }
-
+ 
 export interface RssSource {
   id: number;
   name: string;
@@ -35,23 +35,34 @@ export interface RssSource {
   created_at: string;
   updated_at: string;
 }
-
+ 
 export interface GeneratedContent {
   id: number;
   feed_id: number;
   platform: string;
   headline: string;
+  slug?: string | null;
   content: string;
+  excerpt?: string | null;
+  seo_title?: string | null;
+  seo_description?: string | null;
+  keywords?: string | null;
   hashtags: string | null;
-  featured_image_url?: string;
+  featured_image_prompt?: string | null;
+  featured_image_url?: string | null;
+  source_image_url?: string | null;
+  photography_direction?: string | null;
+  source_url?: string | null;
+  suggested_post_time?: string | null;
   status: 'draft' | 'pending_review' | 'approved' | 'rejected' | 'published';
   validation_status: 'not_checked' | 'passed' | 'failed' | 'needs_human_attention';
+  validation_score?: number | null;
   validation_issues: string | null;
+  revision_count?: number | null;
   scheduled_publish_time: string | null;
   created_at: string;
-  revision_count?: number;
 }
-
+ 
 export interface PublishLog {
   id: number;
   content_id: number;
@@ -62,7 +73,7 @@ export interface PublishLog {
   response_message: string | null;
   created_at: string;
 }
-
+ 
 export interface AgentRun {
   id: number;
   agent_name: string;
@@ -71,95 +82,78 @@ export interface AgentRun {
   message: string | null;
   created_at: string;
 }
-
-export interface PublishedPost {
-  id: number;
-  title: string;
-  content: string;
-  image_url: string | null;
-  platform: string;
-  published_at: string;
-  post_url: string | null;
-  reach: number;
-  engagements: number;
+ 
+export interface DashboardStats {
+  totalArticles: number;
+  pendingArticles: number;
+  approvedArticles: number;
+  generatedContent: number;
+  pendingContent: number;
+  publishedPosts: number;
 }
-
+ 
 export interface BlogPost {
-  id: number;
+  id: string;
   title: string;
-  summary?: string | null;
-  description?: string;
-  content?: string;
+  description: string | null;
+  content: string | null;
   link: string;
   image_url: string | null;
-  city: string | null;
-  source_name: string | null;
-  published_date: string | null;
   created_at: string;
   status: 'pending' | 'approved' | 'rejected';
-  approval_status?: 'pending' | 'approved' | 'rejected';
-  relevance_score: number | null;
-  scoring_reason: string | null;
 }
-
+ 
 export interface AiPost {
-  id: number;
-  feed_id: number;
+  id: string;
   platform: string;
-  headline: string;
+  title: string;
   content: string;
-  hashtags: string | null;
-  featured_image_url?: string;
-  status: 'draft' | 'pending_review' | 'approved' | 'rejected' | 'published';
-  validation_status: 'not_checked' | 'passed' | 'failed' | 'needs_human_attention';
-  validation_issues: string | null;
-  scheduled_publish_time: string | null;
-  created_at: string;
-  revision_count?: number;
+  status: 'pending' | 'approved' | 'rejected' | 'published';
 }
-
-export interface RssFeed {
-  id: number;
-  name: string;
-  url: string;
-  city: string | null;
-  category: string | null;
-  enabled: boolean;
-  is_active?: boolean;
-  last_fetched: string | null;
-  created_at: string;
-  updated_at: string;
+ 
+export interface PublishedPost {
+  id: string;
+  platform: string;
+  title: string | null;
+  content: string;
+  image_url: string | null;
+  published_at: string;
 }
-
+ 
+export interface AdminSetting {
+  key: string;
+  value: string | null;
+}
+ 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
 const DEV_ADMIN_TOKEN = import.meta.env.VITE_ADMIN_API_TOKEN || 'dev-admin-token';
-
+ 
 function backendToken() {
   const token = getAdminToken();
-
+ 
   if (!token || token.startsWith('mock_')) {
     return DEV_ADMIN_TOKEN;
   }
-
+ 
   return token;
 }
-
+ 
 async function apiRequest<T>(path: string, options: RequestInit = {}, auth = true): Promise<T> {
   const headers = new Headers(options.headers);
-
+ 
   if (!headers.has('Content-Type') && options.body) {
     headers.set('Content-Type', 'application/json');
   }
-
+ 
   if (auth) {
     headers.set('Authorization', `Bearer ${backendToken()}`);
   }
-
+ 
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers,
   });
-
+ 
   if (!response.ok) {
     let message = response.statusText || 'Request failed';
     try {
@@ -170,16 +164,16 @@ async function apiRequest<T>(path: string, options: RequestInit = {}, auth = tru
     }
     throw new Error(message);
   }
-
+ 
   if (response.status === 204) {
     return undefined as T;
   }
-
+ 
   return response.json();
 }
-
+ 
 // ─── Mock Data ─────────────────────────────────────────────
-
+ 
 let rssSourcesDB: RssSource[] = [
   { id: 1, name: 'I Amsterdam', url: 'https://www.iamsterdam.com/en/whats-on/rss', city: 'Amsterdam', category: 'Culture', enabled: true, last_fetched: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
   { id: 2, name: 'Rijksmuseum', url: 'https://www.rijksmuseum.nl/en/whats-on/feed', city: 'Amsterdam', category: 'Art', enabled: true, last_fetched: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
@@ -187,7 +181,7 @@ let rssSourcesDB: RssSource[] = [
   { id: 4, name: 'Time Out Paris', url: 'https://www.timeout.fr/paris/rss', city: 'Paris', category: 'Events', enabled: true, last_fetched: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
   { id: 5, name: 'Louvre', url: 'https://www.louvre.fr/en/rss.xml', city: 'Paris', category: 'Art', enabled: true, last_fetched: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
 ];
-
+ 
 let feedsDB: Feed[] = [
   {
     id: 1,
@@ -260,7 +254,7 @@ let feedsDB: Feed[] = [
     scoring_reason: 'Food tourism, cultural experience, moderate engagement',
   },
 ];
-
+ 
 let contentDB: GeneratedContent[] = [
   {
     id: 101,
@@ -268,18 +262,17 @@ let contentDB: GeneratedContent[] = [
     platform: 'instagram',
     headline: 'Paris is glowing ✨ Christmas markets are now open!',
     content: `✨ Paris is glowing!
-
+ 
 The Christmas markets are now open across the city. From the Champs-Élysées to Montmartre, there's magic around every corner.
-
+ 
 🍷 Mulled wine
 🧀 Raclette
 🎄 Handcrafted ornaments
-
+ 
 Which Paris market is on your bucket list?
-
+ 
 #ParisChristmas #TravelParis #VirtualHolidays #ChristmasMarkets #ParisInWinter`,
     hashtags: '["#ParisChristmas","#TravelParis","#VirtualHolidays"]',
-    featured_image_url: 'https://images.pexels.com/photos/532826/pexels-photo-532826.jpeg?auto=compress&cs=tinysrgb&w=600',
     status: 'draft',
     validation_status: 'passed',
     validation_issues: null,
@@ -292,17 +285,16 @@ Which Paris market is on your bucket list?
     platform: 'linkedin',
     headline: 'Paris Christmas Markets: A Strategic Tourism Insight',
     content: `The Paris Christmas market season generates €200M+ in tourism revenue annually. For travel operators, this represents a key Q4 opportunity.
-
+ 
 Key insights:
 • 15+ major markets across the city
 • Average visitor spend: €85/day
 • Peak dates: Dec 15 - Jan 5
-
+ 
 How are you positioning your European travel offerings this season?
-
+ 
 #TravelIndustry #ParisTourism #BusinessTravel`,
     hashtags: null,
-    featured_image_url: 'https://images.pexels.com/photos/532826/pexels-photo-532826.jpeg?auto=compress&cs=tinysrgb&w=600',
     status: 'pending_review',
     validation_status: 'needs_human_attention',
     validation_issues: 'Tone may be too corporate for brand voice. Consider softer language.',
@@ -315,12 +307,11 @@ How are you positioning your European travel offerings this season?
     platform: 'blog',
     headline: 'Amsterdam\'s Secret Canals: A Local\'s Guide',
     content: `## Beyond the Tourist Trail: Amsterdam\'s Hidden Canals
-
+ 
 While millions flock to the Anne Frank House and Rijksmuseum, Amsterdam\'s true magic lies in its lesser-known waterways...
-
+ 
 [Full blog post content would go here]`,
     hashtags: null,
-    featured_image_url: 'https://images.pexels.com/photos/1547813/pexels-photo-1547813.jpeg?auto=compress&cs=tinysrgb&w=600',
     status: 'draft',
     validation_status: 'not_checked',
     validation_issues: null,
@@ -328,7 +319,7 @@ While millions flock to the Anne Frank House and Rijksmuseum, Amsterdam\'s true 
     created_at: '2024-12-15T11:00:00Z',
   },
 ];
-
+ 
 let logsDB: PublishLog[] = [
   {
     id: 201,
@@ -351,47 +342,60 @@ let logsDB: PublishLog[] = [
     created_at: '2024-12-14T12:05:00Z',
   },
 ];
-
+ 
 let runsDB: AgentRun[] = [
   { id: 301, agent_name: 'RSS Fetcher', action: 'fetch_feeds', status: 'completed', message: 'Fetched 5 articles from 4 sources', created_at: '2024-12-15T10:00:00Z' },
   { id: 302, agent_name: 'AI Scorer', action: 'score_articles', status: 'completed', message: 'Scored 5 articles, avg score 77.6', created_at: '2024-12-15T10:05:00Z' },
   { id: 303, agent_name: 'Content Generator', action: 'generate_posts', status: 'completed', message: 'Generated 3 posts from approved articles', created_at: '2024-12-14T12:00:00Z' },
   { id: 304, agent_name: 'Brand Validator', action: 'validate_content', status: 'completed', message: '2 passed, 1 needs attention', created_at: '2024-12-14T12:10:00Z' },
 ];
-
+ 
+let settingsDB: AdminSetting[] = [
+  { key: 'auto_fetch_interval', value: '6h' },
+  { key: 'min_relevance_score', value: '40' },
+  { key: 'auto_advance_high_scoring', value: 'true' },
+  { key: 'auto_generate_on_approve', value: 'true' },
+  { key: 'claude_model', value: 'claude-sonnet-4-5' },
+  { key: 'generate_blog_default', value: 'true' },
+  { key: 'notify_new_articles', value: 'true' },
+  { key: 'notify_content_ready', value: 'true' },
+  { key: 'notify_publish_failures', value: 'true' },
+  { key: 'notify_weekly_digest', value: 'true' },
+];
+ 
 // ─── Auth ──────────────────────────────────────────────────
-
+ 
 const ADMIN_KEY = 'vh_admin_session';
-
+ 
 export function getAdminToken(): string | null {
   return localStorage.getItem(ADMIN_KEY);
 }
-
+ 
 export function getAdminUser(): string | null {
   return localStorage.getItem(`${ADMIN_KEY}_user`);
 }
-
+ 
 export function setAdminSession(token: string, username: string) {
   localStorage.setItem(ADMIN_KEY, token);
   localStorage.setItem(`${ADMIN_KEY}_user`, username);
 }
-
+ 
 export function clearAdminSession() {
   localStorage.removeItem(ADMIN_KEY);
   localStorage.removeItem(`${ADMIN_KEY}_user`);
 }
-
+ 
 export async function verifyAdminSession(): Promise<{ username: string }> {
   const token = getAdminToken();
   if (!token) throw new Error('No session');
-
+ 
   try {
     return await apiRequest<{ username: string }>('/auth/me');
   } catch {
     return { username: getAdminUser() || 'admin' };
   }
 }
-
+ 
 export async function adminLogin(username: string, password: string): Promise<{ token: string; username: string }> {
   try {
     const response = await apiRequest<{ access_token: string; username: string }>('/auth/login', {
@@ -407,9 +411,9 @@ export async function adminLogin(username: string, password: string): Promise<{ 
     return { token, username };
   }
 }
-
+ 
 // ─── Feeds ─────────────────────────────────────────────────
-
+ 
 export async function fetchFeeds(filters?: { status?: string; aiStatus?: 'approved' | 'rejected'; limit?: number; scoredOnly?: boolean }): Promise<Feed[]> {
   try {
     const params = new URLSearchParams({ limit: String(filters?.limit ?? 100) });
@@ -428,7 +432,7 @@ export async function fetchFeeds(filters?: { status?: string; aiStatus?: 'approv
       .slice(0, filters?.limit ?? 100);
   }
 }
-
+ 
 export async function fetchFeedCounts(): Promise<FeedCounts> {
   try {
     return await apiRequest<FeedCounts>('/rss-feeds/summary/counts');
@@ -436,7 +440,7 @@ export async function fetchFeedCounts(): Promise<FeedCounts> {
     await delay(250);
     const aiApproved = feedsDB.filter((feed) => (feed.relevance_score || 0) >= 60);
     const scored = feedsDB.filter((feed) => feed.relevance_score !== null);
-
+ 
     return {
       total: feedsDB.length,
       ai_approved: aiApproved.length,
@@ -447,7 +451,7 @@ export async function fetchFeedCounts(): Promise<FeedCounts> {
     };
   }
 }
-
+ 
 export async function fetchRssSources(): Promise<RssSource[]> {
   try {
     return await apiRequest<RssSource[]>('/rss-feeds/sources');
@@ -456,7 +460,7 @@ export async function fetchRssSources(): Promise<RssSource[]> {
     return [...rssSourcesDB];
   }
 }
-
+ 
 export async function createRssSource(payload: Pick<RssSource, 'name' | 'url' | 'city' | 'category'> & { enabled?: boolean }): Promise<RssSource> {
   try {
     return await apiRequest<RssSource>('/rss-feeds/sources', {
@@ -481,7 +485,7 @@ export async function createRssSource(payload: Pick<RssSource, 'name' | 'url' | 
     return source;
   }
 }
-
+ 
 export async function updateRssSource(sourceId: number, payload: Partial<Pick<RssSource, 'name' | 'url' | 'city' | 'category' | 'enabled'>>): Promise<RssSource> {
   try {
     return await apiRequest<RssSource>(`/rss-feeds/sources/${sourceId}`, {
@@ -500,7 +504,7 @@ export async function updateRssSource(sourceId: number, payload: Partial<Pick<Rs
     return updated;
   }
 }
-
+ 
 export async function deleteRssSource(sourceId: number): Promise<void> {
   try {
     await apiRequest<{ message: string }>(`/rss-feeds/sources/${sourceId}`, {
@@ -511,7 +515,7 @@ export async function deleteRssSource(sourceId: number): Promise<void> {
     rssSourcesDB = rssSourcesDB.filter((source) => source.id !== sourceId);
   }
 }
-
+ 
 export async function approveFeed(feedId: number): Promise<{ content_generation?: { created: number[] }; brand_validation?: { validated: number } }> {
   try {
     return await apiRequest<{ content_generation?: { created: number[] }; brand_validation?: { validated: number } }>(`/rss-feeds/${feedId}/approve`, {
@@ -543,7 +547,7 @@ export async function approveFeed(feedId: number): Promise<{ content_generation?
     return {};
   }
 }
-
+ 
 export async function rejectFeed(feedId: number): Promise<void> {
   try {
     await apiRequest(`/rss-feeds/${feedId}/reject`, {
@@ -554,7 +558,7 @@ export async function rejectFeed(feedId: number): Promise<void> {
     feedsDB = feedsDB.map((f) => (f.id === feedId ? { ...f, approval_status: 'rejected' as const } : f));
   }
 }
-
+ 
 export async function runRssFetch(): Promise<{ result: { inserted: number; skipped: number; candidate_count?: number; counts?: Record<string, number>; scoring?: { scored: number } } }> {
   try {
     return await apiRequest<{ result: { inserted: number; skipped: number; candidate_count?: number; counts?: Record<string, number>; scoring?: { scored: number } } }>('/rss-feeds/fetch', {
@@ -568,7 +572,7 @@ export async function runRssFetch(): Promise<{ result: { inserted: number; skipp
     return { result: { inserted: 3, skipped: 2, scoring: { scored: 3 } } };
   }
 }
-
+ 
 export async function runScoring(): Promise<{ message: string }> {
   try {
     return await apiRequest<{ message: string }>('/scoring/run', {
@@ -580,14 +584,13 @@ export async function runScoring(): Promise<{ message: string }> {
     return { message: 'AI scoring complete. 3 articles scored.' };
   }
 }
-
+ 
 // ─── Content ───────────────────────────────────────────────
-
+ 
 export async function fetchContent(): Promise<GeneratedContent[]> {
-  await delay(400);
-  return [...contentDB];
+  return apiRequest<GeneratedContent[]>('/content/');
 }
-
+ 
 export async function generateContent(feedIds?: number[]): Promise<{ result: { created: number[] } }> {
   await delay(800);
   const created: number[] = [];
@@ -613,7 +616,7 @@ export async function generateContent(feedIds?: number[]): Promise<{ result: { c
   }
   return { result: { created } };
 }
-
+ 
 export async function runBrandValidation(ids?: number[]): Promise<{ message: string }> {
   await delay(700);
   const targets = ids ? contentDB.filter((c) => ids.includes(c.id)) : contentDB.filter((c) => c.validation_status === 'not_checked');
@@ -624,263 +627,178 @@ export async function runBrandValidation(ids?: number[]): Promise<{ message: str
   }
   return { message: `Brand validation complete. ${targets.filter((t) => t.validation_status === 'passed').length} passed, ${targets.filter((t) => t.validation_status === 'needs_human_attention').length} need review.` };
 }
-
+ 
 // ─── Approval ──────────────────────────────────────────────
-
+ 
 export async function approveContent(id: number, scheduledIso?: string): Promise<void> {
-  await delay(500);
-  contentDB = contentDB.map((c) => (c.id === id ? { ...c, status: 'approved' as const, scheduled_publish_time: scheduledIso || c.scheduled_publish_time } : c));
+  await apiRequest<GeneratedContent>(`/content/${id}/approve`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      approved_by: getAdminUser() || 'editor',
+      scheduled_publish_time: scheduledIso || null,
+    }),
+  });
 }
-
+ 
 export async function rejectContent(id: number, _notes?: string): Promise<void> {
-  await delay(400);
-  contentDB = contentDB.map((c) => (c.id === id ? { ...c, status: 'rejected' as const } : c));
+  await apiRequest<GeneratedContent>(`/content/${id}/reject`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      rejected_by: getAdminUser() || 'editor',
+      reason: _notes || null,
+    }),
+  });
 }
-
+ 
 // ─── Publishing ────────────────────────────────────────────
-
+ 
 export async function fetchPublishLogs(): Promise<PublishLog[]> {
   await delay(400);
   return [...logsDB];
 }
-
+ 
 export async function schedulePublish(contentId: number, platform: string, scheduledIso: string): Promise<void> {
-  await delay(500);
-  logsDB.push({
-    id: 5000 + Date.now(),
-    content_id: contentId,
-    platform,
-    status: 'queued',
-    scheduled_publish_time: scheduledIso,
-    post_url: null,
-    response_message: null,
-    created_at: new Date().toISOString(),
+  await apiRequest('/publish/schedule', {
+    method: 'POST',
+    body: JSON.stringify({
+      items: [
+        {
+          content_id: contentId,
+          platform,
+          scheduled_publish_time: scheduledIso,
+        },
+      ],
+    }),
   });
 }
-
+ 
 export async function updatePublishStatus(logId: number, status: 'published' | 'failed'): Promise<void> {
   await delay(400);
   logsDB = logsDB.map((l) => (l.id === logId ? { ...l, status } : l));
 }
-
-export async function regenerateContent(id: number): Promise<GeneratedContent> {
-  await delay(1200);
-  const content = contentDB.find((c) => c.id === id);
-  if (!content) throw new Error('Content not found');
-  const updated: GeneratedContent = {
-    ...content,
-    headline: `${content.headline} (v2)`,
-    content: `[Regenerated] ${content.content}`,
-    revision_count: (content.revision_count || 0) + 1,
-  };
-  contentDB = contentDB.map((c) => (c.id === id ? updated : c));
-  return updated;
-}
-
-
-
-export async function publishContentNow(id: number): Promise<PublishLog> {
-  await delay(1000);
-  const content = contentDB.find((c) => c.id === id);
-  if (!content) throw new Error('Content not found');
-  
-  const log: PublishLog = {
-    id: 5000 + Date.now(),
-    content_id: id,
-    platform: content.platform,
-    status: 'published',
-    scheduled_publish_time: null,
-    post_url: `https://${content.platform}.com/post/${Date.now()}`,
-    response_message: 'Published successfully',
-    created_at: new Date().toISOString(),
-  };
-  logsDB.push(log);
-  contentDB = contentDB.map((c) => (c.id === id ? { ...c, status: 'published' as const } : c));
-  return log;
-}
-
+ 
 // ─── Agent Runs ────────────────────────────────────────────
-
+ 
 export async function fetchAgentRuns(): Promise<AgentRun[]> {
   await delay(300);
   return [...runsDB].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 }
-
-export async function fetchPublishedPosts(): Promise<PublishedPost[]> {
-  await delay(400);
-  return logsDB
-    .filter(log => log.status === 'published')
-    .map(log => {
-      const content = contentDB.find(c => c.id === log.content_id);
-      return {
-        id: log.id,
-        title: content?.headline || 'Untitled',
-        content: content?.content || '',
-        image_url: content?.featured_image_url || null,
-        platform: log.platform,
-        published_at: log.created_at,
-        post_url: log.post_url,
-        reach: Math.floor(Math.random() * 5000) + 1000,
-        engagements: Math.floor(Math.random() * 300) + 50,
-      };
-    });
+ 
+// ─── Utils ─────────────────────────────────────────────────
+ 
+function toNumericId(id: string | number) {
+  return typeof id === 'number' ? id : Number(id);
 }
-
-export async function fetchDashboardStats(): Promise<{
-  totalArticles: number;
-  pendingArticles: number;
-  generatedContent: number;
-  pendingContent: number;
-  publishedPosts: number;
-  approvedArticles: number;
-}> {
-  await delay(400);
-  const published = logsDB.filter(log => log.status === 'published').length;
-  const pending = feedsDB.filter(f => f.approval_status === 'pending').length;
-  const approved = feedsDB.filter(f => f.approval_status === 'approved').length;
-  const pendingContent = contentDB.filter(c => c.status === 'pending_review' || c.status === 'draft').length;
+ 
+function toBlogPost(feed: Feed): BlogPost {
   return {
-    totalArticles: feedsDB.length,
-    pendingArticles: pending,
-    generatedContent: contentDB.length,
-    pendingContent,
-    publishedPosts: published,
-    approvedArticles: approved,
+    id: String(feed.id),
+    title: feed.title,
+    description: feed.summary,
+    content: feed.summary,
+    link: feed.link,
+    image_url: feed.image_url,
+    created_at: feed.published_date || feed.created_at,
+    status: feed.approval_status,
   };
 }
-
-// ─── Blog/Feed Posts (Alias for Feed functions) ────────────
-
-export async function fetchBlogPosts(status?: string): Promise<BlogPost[]> {
+ 
+function toAiPost(item: GeneratedContent): AiPost {
+  return {
+    id: String(item.id),
+    platform: item.platform,
+    title: item.headline,
+    content: item.content,
+    status: item.status === 'draft' || item.status === 'pending_review' ? 'pending' : item.status,
+  };
+}
+ 
+function toPublishedPost(item: GeneratedContent, log?: PublishLog): PublishedPost {
+  return {
+    id: String(log?.id ?? item.id),
+    platform: item.platform,
+    title: item.headline,
+    content: item.content,
+    image_url: item.featured_image_url || item.source_image_url || (feedsDB.find((feed) => feed.id === item.feed_id)?.image_url ?? null),
+    published_at: log?.scheduled_publish_time || item.scheduled_publish_time || item.created_at,
+  };
+}
+ 
+export async function fetchBlogPosts(status?: 'pending' | 'approved' | 'rejected'): Promise<BlogPost[]> {
   const feeds = await fetchFeeds(status ? { status } : undefined);
-  return feeds.map(f => ({
-    ...f,
-    status: f.approval_status as BlogPost['status'],
-    description: f.summary || '',
-  }));
+  return feeds.map(toBlogPost);
 }
-
-export async function approveBlogPost(feedId: number): Promise<void> {
-  await approveFeed(feedId);
+ 
+export async function approveBlogPost(id: string | number): Promise<void> {
+  await approveFeed(toNumericId(id));
 }
-
-export async function rejectBlogPost(feedId: number): Promise<void> {
-  await rejectFeed(feedId);
+ 
+export async function rejectBlogPost(id: string | number): Promise<void> {
+  await rejectFeed(toNumericId(id));
 }
-
-// ─── AI Posts (Alias for Content functions) ────────────────
-
+ 
 export async function fetchAiPosts(): Promise<AiPost[]> {
   const content = await fetchContent();
-  return content as AiPost[];
+  return content.map(toAiPost);
 }
-
-export async function approveAiPost(id: number, scheduledIso?: string): Promise<void> {
-  await approveContent(id, scheduledIso);
+ 
+export async function regenerateAiPost(id: string | number): Promise<AiPost> {
+  await delay(500);
+  const numericId = toNumericId(id);
+  const existing = contentDB.find((item) => item.id === numericId);
+ 
+  if (!existing) {
+    throw new Error('AI post not found');
+  }
+ 
+  existing.content = `${existing.content}\n\nRegenerated draft updated at ${new Date().toLocaleString()}.`;
+  return toAiPost(existing);
 }
-
-export async function scheduleAiPost(id: number, scheduledIso: string): Promise<void> {
-  await approveContent(id, scheduledIso);
+ 
+export async function fetchPublishedPosts(): Promise<PublishedPost[]> {
+  const content = await fetchContent();
+  return content
+    .filter((item) => item.status === 'published' || item.status === 'approved' || Boolean(item.scheduled_publish_time))
+    .map((item) => toPublishedPost(item));
 }
-
-export async function rejectAiPost(id: number, notes?: string): Promise<void> {
-  await rejectContent(id, notes);
+ 
+export async function fetchSettings(): Promise<AdminSetting[]> {
+  await delay(250);
+  return [...settingsDB];
 }
-
-export async function regenerateAiPost(id: number): Promise<AiPost> {
-  return (await regenerateContent(id)) as AiPost;
+ 
+export async function updateSetting(key: string, value: string): Promise<AdminSetting> {
+  await delay(150);
+  const existing = settingsDB.find((setting) => setting.key === key);
+ 
+  if (existing) {
+    existing.value = value;
+    return existing;
+  }
+ 
+  const setting = { key, value };
+  settingsDB = [...settingsDB, setting];
+  return setting;
 }
-
-// ─── Settings ───────────────────────────────────────────────
-
-export async function fetchSettings(): Promise<Record<string, string | number | boolean>> {
-  await delay(300);
+ 
+export async function fetchDashboardStats(): Promise<DashboardStats> {
+  const [feedCounts, content, publishedPosts] = await Promise.all([
+    fetchFeedCounts(),
+    fetchContent(),
+    fetchPublishedPosts(),
+  ]);
+ 
   return {
-    autoFetchInterval: '6h',
-    minRelevanceScore: 40,
-    autoAdvanceHighScoring: true,
-    autoGenerateOnApprove: true,
-    claudeModel: 'claude-3-5-sonnet',
-    generateBlogDefault: true,
-    notifyNewArticles: true,
-    notifyContentReady: true,
-    notifyPublishFailures: true,
-    notifyWeeklyDigest: true,
+    totalArticles: feedCounts.total,
+    pendingArticles: feedCounts.pending,
+    approvedArticles: feedCounts.approved,
+    generatedContent: content.length,
+    pendingContent: content.filter((item) => item.status === 'draft' || item.status === 'pending_review').length,
+    publishedPosts: publishedPosts.length,
   };
 }
-
-export async function updateSetting(key: string, value: string | number | boolean): Promise<void> {
-  await delay(300);
-  // Mock update
-}
-
-// ─── RSS Feeds (Alias for RssSource functions) ──────────────
-
-export async function fetchRssFeeds(): Promise<RssFeed[]> {
-  const sources = await fetchRssSources();
-  return sources.map(s => ({
-    ...s,
-    is_active: s.enabled,
-  }));
-}
-
-export async function fetchRssDemo(): Promise<RssFeed[]> {
-  return fetchRssFeeds();
-}
-
-export async function createRssFeed(payload: {
-  name: string;
-  url: string;
-  city?: string | null;
-  category?: string | null;
-  enabled?: boolean;
-  is_active?: boolean;
-}): Promise<RssFeed> {
-  const source = await createRssSource({
-    name: payload.name,
-    url: payload.url,
-    city: payload.city,
-    category: payload.category,
-    enabled: payload.enabled ?? payload.is_active ?? true,
-  });
-  return {
-    ...source,
-    is_active: source.enabled,
-  };
-}
-
-export async function deleteRssFeed(sourceId: number | string): Promise<void> {
-  return deleteRssSource(typeof sourceId === 'string' ? parseInt(sourceId) : sourceId);
-}
-
-export async function updateRssFeed(
-  sourceId: number,
-  payload: Partial<{
-    name: string;
-    url: string;
-    city: string | null;
-    category: string | null;
-    enabled: boolean;
-    is_active: boolean;
-  }>
-): Promise<RssFeed> {
-  const updatePayload: Partial<Parameters<typeof updateRssSource>[1]> = {};
-  if (payload.name !== undefined) updatePayload.name = payload.name;
-  if (payload.url !== undefined) updatePayload.url = payload.url;
-  if (payload.city !== undefined) updatePayload.city = payload.city;
-  if (payload.category !== undefined) updatePayload.category = payload.category;
-  if (payload.enabled !== undefined) updatePayload.enabled = payload.enabled;
-  if (payload.is_active !== undefined) updatePayload.enabled = payload.is_active;
-  
-  const source = await updateRssSource(sourceId, updatePayload as any);
-  return {
-    ...source,
-    is_active: source.enabled,
-  };
-}
-
-// ─── Utils ─────────────────────────────────────────────────
-
+ 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+ 

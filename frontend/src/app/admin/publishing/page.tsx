@@ -13,6 +13,7 @@ import {
   RefreshCw,
   Send,
   Twitter,
+  XCircle,
 } from 'lucide-react';
 import { PublishedPost, fetchPublishedPosts } from '../../../lib/admin-api';
 
@@ -37,47 +38,64 @@ function PostModal({ post, onClose }: PostModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-2xl animate-scale-in">
-        {post.image_url && (
-          <img src={post.image_url} alt="" className="h-56 w-full object-cover" />
-        )}
-        <div className="p-6">
-          <div className="mb-4 flex flex-wrap items-center gap-2">
-            <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold ${meta.badge}`}>
-              <Icon className="h-3.5 w-3.5" />
-              {meta.label}
-            </span>
-            <span className="rounded-full bg-green-50 border border-green-200 px-3 py-1 text-xs font-bold text-green-700">
-              Published
-            </span>
-          </div>
-
-          {post.title && (
-            <h2 className="mb-4 font-serif text-xl font-bold text-forest-900">{post.title}</h2>
+      <div className="w-full max-w-4xl overflow-hidden rounded-3xl bg-white shadow-2xl animate-scale-in" style={{ maxHeight: 'calc(100vh - 2rem)' }}>
+        <div className="relative overflow-hidden">
+          {post.image_url ? (
+            <img src={post.image_url} alt="" className="h-80 w-full object-cover sm:h-96" />
+          ) : (
+            <div className="flex h-80 w-full items-center justify-center bg-gray-100 sm:h-96">
+              <FileText className="h-16 w-16 text-gray-300" />
+            </div>
           )}
-
-          <div className="mb-4 rounded-xl bg-gray-50 p-4">
-            <p className="text-sm leading-relaxed text-gray-700 whitespace-pre-wrap">{post.content}</p>
-          </div>
-
-          <div className="mb-6 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">
-            <CalendarClock className="mr-2 inline h-4 w-4" />
-            Published on: {new Date(post.published_at).toLocaleString('en-US', {
-              weekday: 'long',
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
-          </div>
-
           <button
             onClick={onClose}
-            className="rounded-xl bg-forest-700 px-5 py-3 text-sm font-bold text-white hover:bg-forest-800"
+            className="absolute right-4 top-4 rounded-full bg-white/90 p-3 text-gray-700 shadow-md transition hover:bg-white"
           >
-            Close
+            <XCircle className="h-5 w-5" />
           </button>
+        </div>
+
+        <div className="flex max-h-[calc(100vh-24rem)] flex-col overflow-hidden">
+          <div className="overflow-y-auto scrollbar-hide p-6">
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold ${meta.badge}`}>
+                <Icon className="h-3.5 w-3.5" />
+                {meta.label}
+              </span>
+              <span className="rounded-full bg-green-50 border border-green-200 px-3 py-1 text-xs font-bold text-green-700">
+                Published
+              </span>
+            </div>
+
+            {post.title && (
+              <h2 className="mb-4 font-serif text-2xl font-bold text-forest-900">{post.title}</h2>
+            )}
+
+            <div className="mb-4 rounded-xl bg-gray-50 p-4">
+              <p className="text-sm leading-relaxed text-gray-700 whitespace-pre-wrap">{post.content}</p>
+            </div>
+
+            <div className="mb-6 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">
+              <CalendarClock className="mr-2 inline h-4 w-4" />
+              Published on: {new Date(post.published_at).toLocaleString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </div>
+          </div>
+
+          <div className="border-t border-gray-100 bg-white p-6">
+            <button
+              onClick={onClose}
+              className="w-full rounded-2xl bg-forest-700 px-4 py-3 text-sm font-bold text-white hover:bg-forest-800"
+            >
+              Close
+            </button>
+          </div>
         </div>
       </div>
     </div>

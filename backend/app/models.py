@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy import Column
+from sqlalchemy import Boolean
 from sqlalchemy import Integer
 from sqlalchemy import String
 from sqlalchemy import Text
@@ -11,6 +12,63 @@ from sqlalchemy import ForeignKey
 from sqlalchemy.orm import relationship
 
 from app.database import Base
+
+
+# =====================================================
+# RSS SOURCES
+# =====================================================
+
+class RssSource(Base):
+
+    __tablename__ = "rss_sources"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    name = Column(
+        String(255),
+        nullable=False
+    )
+
+    url = Column(
+        String(1000),
+        unique=True,
+        nullable=False
+    )
+
+    city = Column(
+        String(100),
+        index=True
+    )
+
+    category = Column(
+        String(100),
+        index=True
+    )
+
+    enabled = Column(
+        Boolean,
+        default=True,
+        nullable=False
+    )
+
+    last_fetched = Column(
+        DateTime
+    )
+
+    created_at = Column(
+        DateTime,
+        default=datetime.utcnow
+    )
+
+    updated_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow
+    )
 
 
 # =====================================================

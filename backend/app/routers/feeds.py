@@ -6,7 +6,10 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Feed
+from app.models import RssSource
 from app.schemas import FeedApprovalRequest
+from app.schemas import RssSourceCreate
+from app.schemas import RssSourceUpdate
 from app.services.rss_service import RSSService
 from app.services.scoring_service import ScoringService
 from app.services.content_service import ContentService
@@ -126,6 +129,123 @@ def fetch_rss_feeds(
     return {
         "message": "RSS fetched successfully",
         "result": result
+    }
+
+
+# ======================================================
+# RSS SOURCES
+# ======================================================
+
+@router.get("/sources")
+def list_rss_sources(
+    db: Session = Depends(get_db)
+):
+
+    return RSSService.get_sources(db)
+
+
+@router.post("/sources")
+def create_rss_source(
+    payload: RssSourceCreate,
+    db: Session = Depends(get_db)
+):
+
+    existing = (
+        db.query(RssSource)
+        .filter(RssSource.url == payload.url)
+        .first()
+    )
+
+    if existing:
+        raise HTTPException(
+            status_code=400,
+            detail="RSS source URL already exists"
+        )
+
+    source = RssSource(
+        name=payload.name,
+        url=payload.url,
+        city=payload.city,
+        category=payload.category,
+        enabled=payload.enabled
+    )
+
+    db.add(source)
+    db.commit()
+    db.refresh(source)
+
+    return source
+
+
+@router.put("/sources/{source_id}")
+def update_rss_source(
+    source_id: int,
+    payload: RssSourceUpdate,
+    db: Session = Depends(get_db)
+):
+
+    source = (
+        db.query(RssSource)
+        .filter(RssSource.id == source_id)
+        .first()
+    )
+
+    if not source:
+        raise HTTPException(
+            status_code=404,
+            detail="RSS source not found"
+        )
+
+    updates = payload.model_dump(exclude_unset=True)
+
+    if "url" in updates:
+        duplicate = (
+            db.query(RssSource)
+            .filter(
+                RssSource.url == updates["url"],
+                RssSource.id != source_id
+            )
+            .first()
+        )
+
+        if duplicate:
+            raise HTTPException(
+                status_code=400,
+                detail="RSS source URL already exists"
+            )
+
+    for field, value in updates.items():
+        setattr(source, field, value)
+
+    db.commit()
+    db.refresh(source)
+
+    return source
+
+
+@router.delete("/sources/{source_id}")
+def delete_rss_source(
+    source_id: int,
+    db: Session = Depends(get_db)
+):
+
+    source = (
+        db.query(RssSource)
+        .filter(RssSource.id == source_id)
+        .first()
+    )
+
+    if not source:
+        raise HTTPException(
+            status_code=404,
+            detail="RSS source not found"
+        )
+
+    db.delete(source)
+    db.commit()
+
+    return {
+        "message": "RSS source removed"
     }
 
 

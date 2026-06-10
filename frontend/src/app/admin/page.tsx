@@ -132,48 +132,38 @@ export default function AdminDashboard() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
         <div className="flex items-center justify-between mb-5">
           <h2 className="font-serif text-xl text-forest-800">Content Pipeline</h2>
-          {workflowStatus.status === 'attention' && (
-            <span className="inline-flex items-center gap-2 rounded-full bg-amber-50 border border-amber-200 px-3 py-1 text-xs font-semibold text-amber-700">
-              <AlertCircle className="h-3.5 w-3.5" />
-              Action needed
-            </span>
-          )}
+          {/* {workflowStatus.status === 'attention' && (
+            // <span className="inline-flex items-center gap-2 rounded-full bg-amber-50 border border-amber-200 px-3 py-1 text-xs font-semibold text-amber-700">
+            //   <AlertCircle className="h-3.5 w-3.5" />
+            //   Action needed
+            // </span>
+          )} */}
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {WORKFLOW_STEPS.map((step, idx) => {
-            const isActive = step.step <= workflowStatus.step;
             const isAttention = workflowStatus.status === 'attention' && step.step === workflowStatus.step;
 
             return (
               <Link key={step.step} to={step.href}>
-                <div className={`relative p-4 rounded-xl border-2 transition-all hover:shadow-md ${
-                  isAttention
-                    ? 'border-amber-300 bg-amber-50'
-                    : isActive
-                    ? 'border-forest-300 bg-forest-50'
-                    : 'border-gray-200 bg-gray-50'
+                <div className={`relative flex h-full min-h-[170px] flex-col justify-between rounded-xl border border-forest-300 bg-white p-4 transition-all hover:shadow-md ${
+                  isAttention ? 'border-amber-300' : ''
                 }`}>
                   {idx < WORKFLOW_STEPS.length - 1 && (
                     <div className="hidden lg:block absolute -right-4 top-1/2 -translate-y-1/2">
                       <ArrowRight className="h-4 w-4 text-gray-300" />
                     </div>
                   )}
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-3 ${
-                    isAttention
-                      ? 'bg-amber-200 text-amber-700'
-                      : isActive
-                      ? 'bg-forest-200 text-forest-700'
-                      : 'bg-gray-200 text-gray-500'
-                  }`}>
-                    <step.icon className="h-5 w-5" />
+                  <div className="">
+                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mb-3 text-forest-700">
+                      <step.icon className="h-5 w-5" />
+                    </div>
+                    <div className="text-sm font-semibold text-forest-800">{step.label}</div>
+                    <div className="text-xs text-forest-500 mt-1 leading-snug">{step.desc}</div>
                   </div>
-                  <div className="text-sm font-semibold text-forest-800">{step.label}</div>
-                  <div className="text-xs text-forest-500 mt-0.5">{step.desc}</div>
                   {isAttention && (
-                    <div className="mt-2 flex items-center gap-1 text-xs font-bold text-amber-600">
-                      <AlertCircle className="h-3 w-3" />
-                      Needs review
+                    <div className="mt-4 flex items-center gap-1 text-xs font-bold text-amber-600">
+  
                     </div>
                   )}
                 </div>
