@@ -1,50 +1,46 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { Check, ChevronDown, ChevronUp, Copy, FileText, Instagram, Linkedin, Loader2, Mail, RefreshCw, ShieldCheck, Sparkles } from 'lucide-react';
-import { Feed, GeneratedContent, fetchContent, fetchFeeds, generateContent, runBrandValidation } from '../../../lib/admin-api';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import {
+  ArrowRight,
+  CheckCircle,
+  ChevronRight,
+  Copy,
+  Eye,
+  Facebook,
+  FileText,
+  Instagram,
+  Linkedin,
+  Loader2,
+  RefreshCw,
+  Sparkles,
+  Twitter,
+} from 'lucide-react';
+import { AiPost, fetchAiPosts, regenerateAiPost } from '../../../lib/admin-api';
 
-const platformIcons: Record<string, React.ComponentType<{ className?: string }>> = {
-  instagram: Instagram,
-  linkedin: Linkedin,
-  newsletter: Mail,
-  blog: FileText,
+const platformMeta: Record<string, { label: string; icon: React.ComponentType<{ className?: string }>; badge: string }> = {
+  blog: { label: 'Blog Post', icon: FileText, badge: 'bg-forest-50 text-forest-700 border-forest-200' },
+  facebook: { label: 'Facebook', icon: Facebook, badge: 'bg-blue-50 text-blue-700 border-blue-200' },
+  instagram: { label: 'Instagram', icon: Instagram, badge: 'bg-rose-50 text-rose-700 border-rose-200' },
+  linkedin: { label: 'LinkedIn', icon: Linkedin, badge: 'bg-sky-50 text-sky-700 border-sky-200' },
+  twitter: { label: 'X / Twitter', icon: Twitter, badge: 'bg-gray-50 text-gray-700 border-gray-200' },
 };
 
-function parseList(value: string | null) {
-  if (!value) return '';
-  try {
-    const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed.join(' ') : String(parsed);
-  } catch {
-    return value;
-  }
-}
-
 export default function ContentPage() {
-  const [approvedFeeds, setApprovedFeeds] = useState<Feed[]>([]);
-  const [selected, setSelected] = useState<string>('');
-  const [items, setItems] = useState<GeneratedContent[]>([]);
-  const [expanded, setExpanded] = useState<number | null>(null);
-  const [copied, setCopied] = useState<number | null>(null);
+  const [items, setItems] = useState<AiPost[]>([]);
   const [loading, setLoading] = useState(true);
-  const [running, setRunning] = useState<'generate' | 'validate' | null>(null);
-  const [message, setMessage] = useState('');
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
   const [error, setError] = useState('');
 
-  async function load() {
+  async function loadData() {
     setError('');
     setLoading(true);
     try {
-      const [feeds, content] = await Promise.all([
-        fetchFeeds({ status: 'approved' }),
-        fetchContent(),
-      ]);
-      setApprovedFeeds(feeds);
-      setItems(content);
-      if (!selected && feeds.length > 0) {
-        setSelected(String(feeds[0].id));
-      }
+      const data = await fetchAiPosts();
+      setItems(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to load content');
     } finally {
@@ -53,171 +49,200 @@ export default function ContentPage() {
   }
 
   useEffect(() => {
-    load();
+    loadData();
   }, []);
 
-  async function runGenerate() {
-    setRunning('generate');
-    setMessage('');
-    setError('');
+  async function handleRegenerate(post: AiPost) {
+    setBusyId(post.id);
     try {
-      const feedId = selected ? Number(selected) : undefined;
-      const result = await generateContent(feedId ? [feedId] : undefined);
-      const created = result.result.created;
-      setMessage(`Content generation completed. Created ${Array.isArray(created) ? created.length : 0} new drafts.`);
-      await load();
+      await regenerateAiPost(post.id);
+      await loadData();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Content generation failed');
+      setError(err instanceof Error ? err.message : 'Failed to regenerate');
     } finally {
-      setRunning(null);
+      setBusyId(null);
     }
   }
 
-  async function runValidation(ids?: number[]) {
-    setRunning('validate');
-    setMessage('');
-    setError('');
-    try {
-      const result = await runBrandValidation(ids);
-      setMessage(result.message);
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Brand validation failed');
-    } finally {
-      setRunning(null);
-    }
-  }
-
-  async function copyText(text: string, id: number) {
+  async function copyText(text: string, id: string) {
     await navigator.clipboard.writeText(text);
     setCopied(id);
     setTimeout(() => setCopied(null), 2000);
   }
 
-  const draftCount = useMemo(() => items.filter((item) => item.status === 'draft').length, [items]);
+  const stats = {
+    total: items.length,
+    pending: items.filter(i => i.status === 'pending').length,
+    approved: items.filter(i => i.status === 'approved').length,
+    published: items.filter(i => i.status === 'published').length,
+  };
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="font-serif text-3xl text-forest-800 mb-1">Content Generator</h1>
-        <p className="text-sm text-forest-500">Generate branded posts from approved RSS articles, then run brand checking</p>
-      </div>
-
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-8">
-        <h2 className="font-serif text-lg text-forest-800 mb-4">Generate New Content</h2>
-        <div className="flex flex-wrap items-end gap-4">
-          <div className="flex-1 min-w-[260px]">
-            <label className="block text-xs font-medium text-gray-600 mb-2 uppercase tracking-wider">Approved Article</label>
-            <select
-              value={selected}
-              onChange={(event) => setSelected(event.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-forest-400 bg-white"
-            >
-              {approvedFeeds.length === 0 ? (
-                <option value="">No approved articles yet</option>
-              ) : approvedFeeds.map((feed) => (
-                <option key={feed.id} value={feed.id}>{feed.title}</option>
-              ))}
-            </select>
+    <div className="min-h-screen bg-gradient-to-br from-cream-50 to-gray-100 p-6 lg:p-8">
+      {/* Header */}
+      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-forest-100 bg-white px-3 py-1 text-xs font-semibold text-forest-700 shadow-sm">
+            <Sparkles className="h-3.5 w-3.5" /> AI Generated
           </div>
-          <button
-            onClick={runGenerate}
-            disabled={running === 'generate' || approvedFeeds.length === 0}
-            className="btn-primary text-xs shrink-0 disabled:opacity-70 min-w-[170px] justify-center"
-          >
-            {running === 'generate' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-            Generate Content
-          </button>
-          <button
-            onClick={() => runValidation()}
-            disabled={running === 'validate' || items.length === 0}
-            className="btn-secondary text-xs shrink-0 disabled:opacity-70 min-w-[160px] justify-center"
-          >
-            {running === 'validate' ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
-            Run Brand Check
-          </button>
+          <h1 className="font-serif text-3xl font-bold text-forest-800">Content Manager</h1>
+          <p className="mt-1 text-sm text-forest-500">View and manage all AI-generated content</p>
         </div>
-        <p className="text-xs text-forest-400 mt-3">{draftCount} drafts currently need validation or approval.</p>
+        <button
+          onClick={loadData}
+          disabled={loading}
+          className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-forest-700 hover:bg-gray-50"
+        >
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          Refresh
+        </button>
       </div>
 
-      {message && <div className="mb-4 rounded-lg bg-green-50 border border-green-100 px-4 py-3 text-sm text-green-700">{message}</div>}
-      {error && <div className="mb-4 rounded-lg bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-700">{error}</div>}
+      {/* Error */}
+      {error && (
+        <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {error}
+        </div>
+      )}
 
-      <div className="space-y-4">
-        {loading ? (
-          <div className="text-center py-16 text-forest-400">
-            <Loader2 className="w-6 h-6 animate-spin mx-auto mb-3" />
-            Loading generated content
-          </div>
-        ) : items.map((item) => {
-          const Icon = platformIcons[item.platform] || FileText;
-          return (
-            <div key={item.id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-              <div className="p-5">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      <span className="tag-forest text-xs flex items-center gap-1">
-                        <Icon className="w-3 h-3" />
-                        {item.platform}
-                      </span>
-                      <span className={item.status === 'approved' ? 'status-approved' : item.status === 'rejected' ? 'status-rejected' : 'status-draft'}>
-                        {item.status}
-                      </span>
-                      <span className={item.validation_status === 'passed' ? 'status-approved' : item.validation_status === 'failed' ? 'status-rejected' : 'status-pending'}>
-                        {item.validation_status || 'not_checked'}
-                      </span>
-                    </div>
-                    <h3 className="font-serif text-base text-forest-800">{item.headline}</h3>
-                    <p className="text-xs text-gray-400 mt-1">Feed #{item.feed_id}</p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      onClick={() => runValidation([item.id])}
-                      disabled={running === 'validate'}
-                      className="btn-secondary text-xs disabled:opacity-70"
-                    >
-                      <RefreshCw className="w-3.5 h-3.5" /> Check
-                    </button>
-                    <button
-                      onClick={() => setExpanded(expanded === item.id ? null : item.id)}
-                      className="p-1.5 text-gray-400 hover:text-forest-600 hover:bg-gray-50 rounded"
-                    >
-                      {expanded === item.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {expanded === item.id && (
-                <div className="border-t border-gray-100 p-5">
-                  <div className="flex items-start justify-between mb-3">
-                    <label className="text-xs font-medium text-gray-600 uppercase tracking-wider">Generated Copy</label>
-                    <button onClick={() => copyText(item.content, item.id)} className="flex items-center gap-1 text-xs text-gray-400 hover:text-forest-600">
-                      {copied === item.id ? <><Check className="w-3 h-3" /> Copied</> : <><Copy className="w-3 h-3" /> Copy</>}
-                    </button>
-                  </div>
-                  <pre className="text-sm text-forest-700 whitespace-pre-wrap font-sans leading-relaxed bg-gray-50 rounded-lg p-4">{item.content}</pre>
-                  {item.hashtags && <p className="text-xs text-blue-600 bg-blue-50 rounded-lg p-3 mt-3">{parseList(item.hashtags)}</p>}
-                  {item.validation_issues && (
-                    <div className="mt-3 rounded-lg bg-amber-50 border border-amber-100 px-3 py-2 text-xs text-amber-700">
-                      {item.validation_issues}
-                    </div>
-                  )}
-                </div>
-              )}
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {[
+          { label: 'Total Content', value: stats.total, color: 'text-forest-700' },
+          { label: 'Pending', value: stats.pending, color: 'text-amber-600' },
+          { label: 'Approved', value: stats.approved, color: 'text-green-600' },
+          { label: 'Published', value: stats.published, color: 'text-blue-600' },
+        ].map(stat => (
+          <div key={stat.label} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <div className={`text-2xl font-bold font-serif ${stat.color}`}>
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : stat.value}
             </div>
-          );
-        })}
-
-        {!loading && items.length === 0 && (
-          <div className="text-center py-16 text-forest-400">
-            <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />
-            <p className="font-serif text-lg">No generated content yet</p>
-            <p className="text-sm mt-1">Approve an RSS article, then run content generation.</p>
+            <div className="text-xs text-forest-500 mt-0.5">{stat.label}</div>
           </div>
-        )}
+        ))}
       </div>
+
+      {/* Link to approval page */}
+      <div className="mb-8 rounded-xl border border-blue-200 bg-blue-50 p-4 flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-blue-800">Ready to approve or schedule posts?</p>
+          <p className="text-xs text-blue-600 mt-0.5">Go to the AI Post Approval page to review and publish content</p>
+        </div>
+        <Link
+          to="/admin/approval"
+          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700"
+        >
+          Go to Approval <ChevronRight className="h-4 w-4" />
+        </Link>
+      </div>
+
+      {/* Content Grid */}
+      {loading ? (
+        <div className="flex items-center justify-center rounded-2xl border border-gray-200 bg-white py-20 text-forest-700 shadow-sm">
+          <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading content...
+        </div>
+      ) : items.length === 0 ? (
+        <div className="rounded-2xl border border-gray-200 bg-white py-20 text-center shadow-sm">
+          <FileText className="mx-auto mb-3 h-10 w-10 text-gray-300" />
+          <p className="font-serif text-lg text-gray-600">No content generated yet</p>
+          <p className="mt-1 text-sm text-gray-400">Approve RSS articles to generate AI content</p>
+          <Link
+            to="/admin/rss"
+            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-forest-700 px-4 py-2 text-xs font-semibold text-white hover:bg-forest-800"
+          >
+            Go to RSS Collection <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      ) : (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {items.map(post => {
+            const meta = platformMeta[post.platform] || platformMeta.blog;
+            const Icon = meta.icon;
+            const isExpanded = expanded === post.id;
+
+            return (
+              <div
+                key={post.id}
+                className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
+              >
+                <div className="p-4">
+                  <div className="flex items-start gap-3">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${meta.badge}`}>
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <span className="text-xs font-semibold text-gray-500">{meta.label}</span>
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${
+                          post.status === 'published'
+                            ? 'bg-green-100 text-green-700'
+                            : post.status === 'rejected'
+                            ? 'bg-red-100 text-red-700'
+                            : post.status === 'approved'
+                            ? 'bg-blue-100 text-blue-700'
+                            : 'bg-amber-100 text-amber-700'
+                        }`}>
+                          {post.status}
+                        </span>
+                      </div>
+                      <h3 className="text-sm font-semibold text-forest-800 truncate">
+                        {post.title || 'Untitled Post'}
+                      </h3>
+                    </div>
+                    <button
+                      onClick={() => setExpanded(isExpanded ? null : post.id)}
+                      className="rounded-lg p-2 text-gray-400 hover:bg-gray-50 hover:text-gray-600"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {isExpanded && (
+                  <div className="border-t border-gray-100 bg-gray-50 p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-semibold text-gray-500 uppercase">Content</span>
+                      <button
+                        onClick={() => copyText(post.content, post.id)}
+                        className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-forest-600"
+                      >
+                        {copied === post.id ? (
+                          <>
+                            <CheckCircle className="h-3.5 w-3.5" /> Copied
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-3.5 w-3.5" /> Copy
+                          </>
+                        )}
+                      </button>
+                    </div>
+                    <div className="rounded-lg bg-white p-3 text-sm text-gray-700 whitespace-pre-wrap">
+                      {post.content}
+                    </div>
+                    <div className="mt-3 flex gap-2">
+                      <button
+                        onClick={() => handleRegenerate(post)}
+                        disabled={busyId === post.id}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-60"
+                      >
+                        {busyId === post.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                        Regenerate
+                      </button>
+                      <Link
+                        to="/admin/approval"
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-forest-700 px-3 py-2 text-xs font-semibold text-white hover:bg-forest-800"
+                      >
+                        Go to Approval <ArrowRight className="h-3.5 w-3.5" />
+                      </Link>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

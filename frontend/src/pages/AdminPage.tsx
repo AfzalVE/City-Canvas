@@ -12,6 +12,7 @@ import {
   Send,
   Settings,
   ThumbsUp,
+  Plane,
 } from 'lucide-react';
 import { clearAdminSession, getAdminToken, getAdminUser, verifyAdminSession } from '../lib/admin-api';
 import AdminDashboard from '../app/admin/page';
@@ -41,7 +42,7 @@ function Sidebar() {
       <div className="px-5 py-5 border-b border-gray-100">
         <Link to="/" className="flex items-center gap-2">
           <div className="w-8 h-8 bg-[var(--forest-green)] rounded-md flex items-center justify-center">
-            <Leaf className="w-4 h-4 text-[var(--cream)]" />
+            <Plane className="w-4 h-4 text-[var(--cream)]" />
           </div>
           <div>
             <div className="text-sm font-semibold text-[var(--charcoal)] font-serif">Virtual Holidays</div>

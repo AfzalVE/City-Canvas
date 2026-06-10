@@ -42,3 +42,5 @@ generated_media
 *.sln
 *.sw?
 CLIENT_POC.md
+travel_agent.db
+*.db

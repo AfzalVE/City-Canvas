@@ -13,6 +13,7 @@ import {
   Send,
   Sparkles,
   Star,
+  X,
   XCircle,
   Zap,
 } from 'lucide-react';
@@ -177,7 +178,7 @@ function RssSourceManager({
       {loading ? (
         <div className="flex items-center justify-center py-10 text-forest-700"><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading RSS sources...</div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-gray-200">
+        <div className="overflow-x-auto rounded-lg border border-gray-200 max-h-[420px] overflow-y-auto scrollbar-hide">
           <table className="w-full min-w-[860px] text-left text-sm">
             <thead className="bg-[#F8FAF7] text-xs uppercase tracking-wide text-gray-500">
               <tr>
@@ -215,8 +216,132 @@ function RssSourceManager({
   );
 }
 
+type PreviewModalProps = {
+  feed: Feed | null;
+  onClose: () => void;
+  onApprove: () => void;
+  onReject: () => void;
+  loading: boolean;
+};
+
+function PreviewModal({
+  feed,
+  onClose,
+  onApprove,
+  onReject,
+  loading,
+}: PreviewModalProps) {
+  if (!feed) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-2xl" style={{ maxHeight: 'calc(100vh - 3rem)' }}>
+        <div className="relative">
+          <img
+            src={imageFor(feed)}
+            alt={feed.title}
+            className="h-64 w-full object-cover sm:h-72"
+          />
+
+          <button
+            onClick={onClose}
+            className="absolute right-4 top-4 rounded-full bg-white/90 p-2 text-gray-600 shadow-sm transition hover:bg-white"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="p-6 overflow-y-auto scrollbar-hide" style={{ maxHeight: 'calc(100vh - 20rem)' }}>
+          <div className="mb-4 flex flex-wrap items-center gap-3 text-sm text-forest-500">
+            <span className="inline-flex items-center gap-1">
+              <Globe className="h-3.5 w-3.5" />
+              {feed.source_name || 'RSS Source'}
+            </span>
+            {feed.city && (
+              <span className="inline-flex items-center gap-1">
+                <Sparkles className="h-3.5 w-3.5" />
+                {feed.city}
+              </span>
+            )}
+            <span className="inline-flex items-center gap-1">
+              <Calendar className="h-3.5 w-3.5" />
+              {formatDate(feed)}
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <Star className="h-3.5 w-3.5" />
+              Score {Math.round(feed.relevance_score || 0)}
+            </span>
+          </div>
+          <div className="mb-4 flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-forest-700">
+            <span className="rounded-full bg-forest-50 px-3 py-1">{feed.approval_status}</span>
+          </div>
+
+          <h2 className="mb-4 font-serif text-2xl font-bold text-forest-900">
+            {feed.title}
+          </h2>
+
+          <div className="mb-6 rounded-xl bg-gray-50 p-4">
+            <p className="text-sm leading-relaxed text-gray-700 whitespace-pre-wrap">
+              {feed.summary || 'No content available'}
+            </p>
+          </div>
+
+          {feed.scoring_reason && (
+            <div className="mb-6 rounded-xl border border-gold-200 bg-gold-50 p-4">
+              <h3 className="mb-2 font-semibold text-forest-800">
+                AI Scoring Reason
+              </h3>
+              <p className="text-sm text-forest-700">
+                {feed.scoring_reason}
+              </p>
+            </div>
+          )}
+
+          {feed.link && (
+            <a
+              href={feed.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mb-6 inline-flex items-center gap-2 text-sm text-forest-600 hover:text-forest-800"
+            >
+              <ExternalLink className="h-4 w-4" />
+              View Original Article
+            </a>
+          )}
+
+          {feed.approval_status === 'pending' && (
+            <div className="flex gap-3">
+              <button
+                onClick={onApprove}
+                disabled={loading}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 text-sm font-bold text-white hover:bg-green-700 disabled:opacity-60"
+              >
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <CheckCircle className="h-4 w-4" />
+                )}
+                Approve & Generate
+              </button>
+
+              <button
+                onClick={onReject}
+                disabled={loading}
+                className="flex items-center gap-2 rounded-xl border border-red-200 bg-white px-6 py-3 text-sm font-bold text-red-600 hover:bg-red-50 disabled:opacity-60"
+              >
+                <XCircle className="h-4 w-4" />
+                Reject
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function RSSPage() {
-  const [feeds, setFeeds] = useState<Feed[]>([]);
+    const [feeds, setFeeds] = useState<Feed[]>([]);
   const [feedCounts, setFeedCounts] = useState<FeedCounts>({
     total: 0,
     ai_approved: 0,
@@ -230,6 +355,8 @@ export default function RSSPage() {
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [busyId, setBusyId] = useState<number | null>(null);
+  const [selectedFeed, setSelectedFeed] = useState<Feed | null>(null);
+  const [modalLoading, setModalLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [showSources, setShowSources] = useState(false);
@@ -370,7 +497,63 @@ export default function RSSPage() {
       setBusyId(null);
     }
   }
+async function approveFromModal() {
+  if (!selectedFeed) return;
 
+  setModalLoading(true);
+
+  try {
+    const result = await approveFeed(selectedFeed.id);
+
+    const created =
+      result.content_generation?.created?.length ?? 0;
+
+    const validated =
+      result.brand_validation?.validated ?? 0;
+
+    setMessage(
+      `Article approved - AI generated ${created} social posts - ${validated} posts sent to Approval Queue.`
+    );
+
+    setSelectedFeed(null);
+
+    await load();
+  } catch (err) {
+    setError(
+      err instanceof Error
+        ? err.message
+        : 'Unable to approve article'
+    );
+  } finally {
+    setModalLoading(false);
+  }
+}
+
+async function rejectFromModal() {
+  if (!selectedFeed) return;
+
+  setModalLoading(true);
+
+  try {
+    await rejectFeed(selectedFeed.id);
+
+    setMessage(
+      'Article rejected and removed from queue.'
+    );
+
+    setSelectedFeed(null);
+
+    await load();
+  } catch (err) {
+    setError(
+      err instanceof Error
+        ? err.message
+        : 'Unable to reject article'
+    );
+  } finally {
+    setModalLoading(false);
+  }
+}
   const filteredFeeds = useMemo(() =>
     feeds
       .filter((feed) => cityMatches(feed, cityFilter))
@@ -588,27 +771,30 @@ export default function RSSPage() {
                     View Original Article
                   </a>
 
-                  <div className="mt-auto">
+                  <div className="mt-auto flex flex-col gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedFeed(feed)}
+                      className="rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-forest-700 transition-colors hover:bg-gray-50"
+                    >
+                      See More
+                    </button>
+
                     {isAiRejectedView ? (
                       <div className="rounded-lg border border-red-200 bg-red-50 py-2 text-center text-xs font-semibold text-red-600">
                         AI rejected by scoring agent
                       </div>
                     ) : pending ? (
                       <div>
-                        <p className="mb-2 flex items-center gap-1 text-xs text-forest-500">
+                        {/* <p className="mb-2 flex items-center gap-1 text-xs text-forest-500">
                           <Sparkles className="h-3 w-3 text-gold-500" />
                           Approve to trigger AI post generation
-                        </p>
-                        <div className="flex gap-2">
+                        </p> */}
+                        <div className="flex flex-wrap gap-2">
                           <button
-                            onClick={() => setArticleStatus(feed.id, 'approved')}
+                            onClick={() => setSelectedFeed(feed)}
                             disabled={busyId === feed.id}
-                            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-sm font-semibold text-white transition-colors disabled:opacity-60"
-                            style={{
-                              minWidth: 0,
-                              backgroundColor: '#16a34a',
-                              color: '#ffffff',
-                            }}
+                            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-green-600 px-3 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-green-700 disabled:opacity-60"
                           >
                             {busyId === feed.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle className="h-3.5 w-3.5" />}
                             Approve & Generate
@@ -616,7 +802,7 @@ export default function RSSPage() {
                           <button
                             onClick={() => setArticleStatus(feed.id, 'rejected')}
                             disabled={busyId === feed.id}
-                            className="rounded-lg bg-gray-100 px-3 py-2.5 text-gray-600 transition-colors hover:bg-red-50 hover:text-red-600"
+                            className="inline-flex h-full items-center justify-center rounded-lg bg-gray-100 px-3 py-2.5 text-gray-600 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-60"
                           >
                             <XCircle className="h-4 w-4" />
                           </button>
@@ -655,6 +841,13 @@ export default function RSSPage() {
           )}
         </div>
       )}
+    <PreviewModal
+  feed={selectedFeed}
+  onClose={() => setSelectedFeed(null)}
+  onApprove={approveFromModal}
+  onReject={rejectFromModal}
+  loading={modalLoading}
+/>
     </div>
   );
 }

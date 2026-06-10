@@ -28,6 +28,7 @@ export interface TravelPackage {
   startingPrice: number;
   highlights: string[];
   category: string;
+  demoLink?: string;
 }
 
 export interface Review {

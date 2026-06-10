@@ -17,12 +17,32 @@ export default function FeaturedPackages() {
     (p) => p.category === activeCategory
   );
 
+  const demoVariants = [
+    { suffix: 'Experience', label: 'View Demo', query: 'experience' },
+    { suffix: 'Signature', label: 'Live Tour', query: 'signature' },
+    { suffix: 'Elite', label: 'Preview', query: 'elite' },
+  ];
+
   const filtered =
     categoryPackages.length > 0
-      ? Array.from({ length: 3 }, (_, index) => ({
-          ...categoryPackages[index % categoryPackages.length],
-          id: `${categoryPackages[index % categoryPackages.length].id}-${index}`,
-        }))
+      ? Array.from({ length: 3 }, (_, index) => {
+          const basePackage = categoryPackages[index % categoryPackages.length];
+          const variant = demoVariants[index] ?? {
+            suffix: `Variant ${index + 1}`,
+            label: 'View Demo',
+            query: `variant-${index + 1}`,
+          };
+          const demoLink = basePackage.demoLink
+            ? `${basePackage.demoLink}?variant=${variant.query}`
+            : '#';
+
+          return {
+            ...basePackage,
+            id: `${basePackage.id}-${index}`,
+            name: `${basePackage.name} — ${variant.suffix}`,
+            demoLink,
+          };
+        })
       : [];
 
   const scroll = (dir: 'left' | 'right') => {
@@ -146,7 +166,7 @@ export default function FeaturedPackages() {
                         ))}
                       </ul>
 
-                      <div className="mt-6 flex items-center justify-between">
+                      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                           <span className="text-xs text-[var(--warm-gray)]">
                             From
@@ -157,10 +177,22 @@ export default function FeaturedPackages() {
                           </p>
                         </div>
 
-                        <button className="flex items-center gap-2 rounded-lg bg-[var(--forest-green)] px-6 py-2.5 text-sm font-medium text-[var(--cream)] transition-all hover:bg-[var(--forest-green-light)]">
-                          Book Now
-                          <ArrowRight className="h-4 w-4" />
-                        </button>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button className="flex items-center gap-2 rounded-lg bg-[var(--forest-green)] px-6 py-2.5 text-sm font-medium text-[var(--cream)] transition-all hover:bg-[var(--forest-green-light)]">
+                            Book Now
+                            <ArrowRight className="h-4 w-4" />
+                          </button>
+
+                          <a
+                            href={pkg.demoLink ?? '#'}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-2 rounded-lg border border-[var(--forest-green)] px-6 py-2.5 text-sm font-medium text-[var(--forest-green)] transition-all hover:bg-[var(--forest-green)] hover:text-[var(--cream)]"
+                          >
+                            View Demo
+                            <ArrowRight className="h-4 w-4" />
+                          </a>
+                        </div>
                       </div>
                     </div>
                   </div>
