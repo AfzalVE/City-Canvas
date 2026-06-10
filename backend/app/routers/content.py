@@ -8,6 +8,7 @@ from app.database import get_db
 from app.models import GeneratedContent
 from app.schemas import ContentApprovalRequest
 from app.schemas import ContentGenerateRequest
+from app.schemas import ContentRegenerateRequest
 from app.schemas import ContentRejectionRequest
 from app.services.content_service import ContentService
 from app.services.image_generation_service import ImageGenerationService
@@ -103,6 +104,30 @@ def generate_content_image(
 
     return {
         "message": "Image generated",
+        "content": serialize_content(content),
+    }
+
+
+@router.post("/{content_id}/regenerate")
+def regenerate_content_endpoint(
+    content_id: int,
+    payload: ContentRegenerateRequest = ContentRegenerateRequest(),
+    db: Session = Depends(get_db)
+):
+
+    try:
+        content = ContentService.regenerate(db, content_id, payload.type)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Regeneration failed: {exc}"
+        ) from exc
+
+    if not content:
+        raise HTTPException(status_code=404, detail="Content not found")
+
+    return {
+        "message": f"Regenerated {payload.type}",
         "content": serialize_content(content),
     }
 

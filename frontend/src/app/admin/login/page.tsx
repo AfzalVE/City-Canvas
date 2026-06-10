@@ -1,6 +1,7 @@
 import { FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, Lock, Sparkles } from 'lucide-react';
+import {adminLogin} from "../../../lib/admin-api";
 
 export default function AdminLoginPage() {
   const navigate = useNavigate();
@@ -15,11 +16,11 @@ export default function AdminLoginPage() {
     setLoading(true);
 
     try {
-      // Demo login - accept any credentials
-      if (username && password) {
+      const response = await adminLogin(username, password);
+      if (response) {
         navigate('/admin');
       } else {
-        setError('Please enter username and password');
+        setError('Invalid username or password');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to sign in');

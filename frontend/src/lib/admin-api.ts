@@ -109,6 +109,7 @@ export interface AiPost {
   title: string;
   content: string;
   status: 'pending' | 'approved' | 'rejected' | 'published';
+  image_url?: string | null;
 }
  
 export interface PublishedPost {
@@ -587,8 +588,19 @@ export async function runScoring(): Promise<{ message: string }> {
  
 // ─── Content ───────────────────────────────────────────────
  
+function fixImageUrls(item: GeneratedContent): GeneratedContent {
+  if (item.featured_image_url && item.featured_image_url.startsWith('/media/')) {
+    item.featured_image_url = `${API_BASE_URL}${item.featured_image_url}`;
+  }
+  if (item.source_image_url && item.source_image_url.startsWith('/media/')) {
+    item.source_image_url = `${API_BASE_URL}${item.source_image_url}`;
+  }
+  return item;
+}
+
 export async function fetchContent(): Promise<GeneratedContent[]> {
-  return apiRequest<GeneratedContent[]>('/content/');
+  const data = await apiRequest<GeneratedContent[]>('/content/');
+  return data.map(fixImageUrls);
 }
  
 export async function generateContent(feedIds?: number[]): Promise<{ result: { created: number[] } }> {
@@ -704,22 +716,31 @@ function toBlogPost(feed: Feed): BlogPost {
 }
  
 function toAiPost(item: GeneratedContent): AiPost {
+  let imgUrl = item.featured_image_url || item.source_image_url || null;
+  if (imgUrl && imgUrl.startsWith('/media/')) {
+    imgUrl = `${API_BASE_URL}${imgUrl}`;
+  }
   return {
     id: String(item.id),
     platform: item.platform,
     title: item.headline,
     content: item.content,
     status: item.status === 'draft' || item.status === 'pending_review' ? 'pending' : item.status,
+    image_url: imgUrl,
   };
 }
  
 function toPublishedPost(item: GeneratedContent, log?: PublishLog): PublishedPost {
+  let imgUrl = item.featured_image_url || item.source_image_url || (feedsDB.find((feed) => feed.id === item.feed_id)?.image_url ?? null);
+  if (imgUrl && imgUrl.startsWith('/media/')) {
+    imgUrl = `${API_BASE_URL}${imgUrl}`;
+  }
   return {
     id: String(log?.id ?? item.id),
     platform: item.platform,
     title: item.headline,
     content: item.content,
-    image_url: item.featured_image_url || item.source_image_url || (feedsDB.find((feed) => feed.id === item.feed_id)?.image_url ?? null),
+    image_url: imgUrl,
     published_at: log?.scheduled_publish_time || item.scheduled_publish_time || item.created_at,
   };
 }
@@ -742,17 +763,13 @@ export async function fetchAiPosts(): Promise<AiPost[]> {
   return content.map(toAiPost);
 }
  
-export async function regenerateAiPost(id: string | number): Promise<AiPost> {
-  await delay(500);
+export async function regenerateAiPost(id: string | number, type: 'image' | 'content' | 'both' = 'content'): Promise<AiPost> {
   const numericId = toNumericId(id);
-  const existing = contentDB.find((item) => item.id === numericId);
- 
-  if (!existing) {
-    throw new Error('AI post not found');
-  }
- 
-  existing.content = `${existing.content}\n\nRegenerated draft updated at ${new Date().toLocaleString()}.`;
-  return toAiPost(existing);
+  const result = await apiRequest<{ message: string; content: GeneratedContent }>(`/content/${numericId}/regenerate`, {
+    method: 'POST',
+    body: JSON.stringify({ type }),
+  });
+  return toAiPost(result.content);
 }
  
 export async function fetchPublishedPosts(): Promise<PublishedPost[]> {
