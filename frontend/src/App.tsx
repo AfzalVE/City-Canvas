@@ -2,17 +2,27 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
 import AdminPage from './pages/AdminPage';
+import SearchHolidaysPage from './pages/SearchHolidaysPage';
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route
-          path="/*"
+          path="/"
           element={
             <>
               <Navbar />
               <HomePage />
+            </>
+          }
+        />
+        <Route
+          path="/search"
+          element={
+            <>
+              <Navbar />
+              <SearchHolidaysPage />
             </>
           }
         />
@@ -23,3 +33,4 @@ function App() {
 }
 
 export default App;
+

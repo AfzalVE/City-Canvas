@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Search, MapPin, Calendar, Users, Wallet, Compass } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const destinationOptions = ['Paris', 'Amsterdam', 'Other'];
 const parisAttractions = ['Eiffel Tower', 'Louvre Museum', 'Seine River Cruise', 'Montmartre'];
@@ -8,6 +9,7 @@ const amsterdamAttractions = ['Canal Cruise', 'Rijksmuseum', 'Anne Frank House',
 const genericAttractions = ['City Tour', 'Food Market', 'Local Culture', 'Other'];
 
 export default function DestinationSearch() {
+  const navigate = useNavigate();
   const [destination, setDestination] = useState('Paris');
   const [customDestination, setCustomDestination] = useState('');
   const [attraction, setAttraction] = useState('');
@@ -26,8 +28,15 @@ export default function DestinationSearch() {
   const attractionValue = attraction === 'Other' ? customAttraction : attraction;
 
   const handleSearch = () => {
-    console.log({ destination: destinationValue, attraction: attractionValue, travelType, travelDate, budget });
+    const params = new URLSearchParams();
+    if (destinationValue) params.append('destination', destinationValue);
+    if (attractionValue) params.append('attraction', attractionValue);
+    if (travelType) params.append('travelType', travelType);
+    if (travelDate) params.append('travelDate', travelDate);
+    if (budget) params.append('budget', budget);
+    navigate(`/search?${params.toString()}`);
   };
+
 
   return (
     <section className="relative z-20 -mt-20 mx-auto max-w-6xl px-4">
