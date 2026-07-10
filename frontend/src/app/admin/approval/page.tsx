@@ -75,6 +75,7 @@ export default function ApprovalPage() {
   const [selectedItem, setSelectedItem] = useState<PreviewItem | null>(null);
   const [scheduleFor, setScheduleFor] = useState<PreviewItem | null>(null);
   const [scheduleAt, setScheduleAt] = useState(toLocalDatetimeValue());
+  const [regenerateMenuFor, setRegenerateMenuFor] = useState<number | null>(null);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
  
@@ -136,15 +137,17 @@ export default function ApprovalPage() {
     }
   }
 
-  async function regenerate(item: PreviewItem) {
+  async function regenerate(item: PreviewItem, type: 'image' | 'content' | 'both') {
     setBusyId(item.id);
     setError('');
     setMessage('');
     try {
-      const regenerated = await regenerateAiPost(item.id);
-      setMessage('Content regenerated successfully.');
+      const regenerated = await regenerateAiPost(item.id, type);
+      setMessage(`Content regenerated successfully (${type}).`);
       await load();
-      setSelectedItem((prev) => prev && { ...prev, content: regenerated.content });
+      if (selectedItem?.id === item.id) {
+        setSelectedItem((prev) => prev && { ...prev, content: regenerated.content, image: regenerated.image_url || prev.image });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to regenerate content');
     } finally {
@@ -264,14 +267,23 @@ export default function ApprovalPage() {
             </div>
             <div className="sticky bottom-0 left-0 right-0 border-t border-gray-200 bg-white/95 p-4 backdrop-blur-sm">
               <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => regenerate(selectedItem)}
-                  disabled={busyId === selectedItem.id}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-60"
-                >
-                  <RefreshCw className="h-4 w-4" /> Regenerate
-                </button>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setRegenerateMenuFor(regenerateMenuFor === selectedItem.id ? null : selectedItem.id)}
+                    disabled={busyId === selectedItem.id}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-60"
+                  >
+                    <RefreshCw className="h-4 w-4" /> Regenerate
+                  </button>
+                  {regenerateMenuFor === selectedItem.id && (
+                    <div className="absolute bottom-full left-0 mb-2 w-40 rounded-xl border border-gray-100 bg-white p-1.5 shadow-xl z-10">
+                      <button onClick={() => { regenerate(selectedItem, 'image'); setRegenerateMenuFor(null); }} className="w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-gray-700 hover:bg-gray-50">Regenerate Image</button>
+                      <button onClick={() => { regenerate(selectedItem, 'content'); setRegenerateMenuFor(null); }} className="w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-gray-700 hover:bg-gray-50">Regenerate Content</button>
+                      <button onClick={() => { regenerate(selectedItem, 'both'); setRegenerateMenuFor(null); }} className="w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-gray-700 hover:bg-gray-50">Regenerate Both</button>
+                    </div>
+                  )}
+                </div>
                 <button
                   type="button"
                   onClick={() => { setScheduleFor(selectedItem); setSelectedItem(null); setScheduleAt(toLocalDatetimeValue()); }}
@@ -382,13 +394,22 @@ export default function ApprovalPage() {
  
                   {!isFinal && (
                     <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-4">
-                      <button
-                        onClick={() => regenerate(item)}
-                        disabled={busyId === item.id}
-                        className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-60"
-                      >
-                        <RefreshCw className="h-3.5 w-3.5" /> Regenerate
-                      </button>
+                      <div className="relative">
+                        <button
+                          onClick={() => setRegenerateMenuFor(regenerateMenuFor === item.id ? null : item.id)}
+                          disabled={busyId === item.id}
+                          className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-60"
+                        >
+                          <RefreshCw className="h-3.5 w-3.5" /> Regenerate
+                        </button>
+                        {regenerateMenuFor === item.id && (
+                          <div className="absolute bottom-full left-0 mb-2 w-40 rounded-xl border border-gray-100 bg-white p-1.5 shadow-xl z-10">
+                            <button onClick={() => { regenerate(item, 'image'); setRegenerateMenuFor(null); }} className="w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-gray-700 hover:bg-gray-50">Regenerate Image</button>
+                            <button onClick={() => { regenerate(item, 'content'); setRegenerateMenuFor(null); }} className="w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-gray-700 hover:bg-gray-50">Regenerate Content</button>
+                            <button onClick={() => { regenerate(item, 'both'); setRegenerateMenuFor(null); }} className="w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-gray-700 hover:bg-gray-50">Regenerate Both</button>
+                          </div>
+                        )}
+                      </div>
                       <button
                         onClick={() => approveNow(item)}
                         disabled={busyId === item.id}

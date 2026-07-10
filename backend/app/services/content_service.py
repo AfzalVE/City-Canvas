@@ -111,6 +111,55 @@ class ContentService:
         }
 
     @staticmethod
+    def regenerate(
+        db: Session,
+        content_id: int,
+        regen_type: str
+    ):
+
+        content = (
+            db.query(GeneratedContent)
+            .filter(GeneratedContent.id == content_id)
+            .first()
+        )
+
+        if not content:
+            return None
+
+        if regen_type in ["content", "both"]:
+            feed = content.feed
+            if feed:
+                generated = LLMService.generate_platform_content(feed, content.platform)
+                content.headline = generated.get("headline") or feed.title
+                content.content = generated.get("content", "")
+                content.excerpt = generated.get("excerpt", "")
+                content.seo_title = generated.get("seo_title", "")
+                content.seo_description = generated.get("seo_description", "")
+                content.keywords = json.dumps(generated.get("keywords", []))
+                content.hashtags = json.dumps(generated.get("hashtags", []))
+
+        if regen_type in ["image", "both"]:
+            from app.services.image_generation_service import ImageGenerationService
+            ImageGenerationService.generate_for_content(db, content_id)
+
+        content.validation_status = "not_checked"
+        content.validation_issues = None
+        content.revision_count = (content.revision_count or 0) + 1
+
+        db.commit()
+        db.refresh(content)
+
+        AgentLogService.log(
+            db,
+            "content_agent",
+            "regenerate_content",
+            "completed",
+            f"Regenerated {regen_type} for content {content.id}."
+        )
+
+        return content
+
+    @staticmethod
     def approve(
         db: Session,
         content_id: int,

@@ -89,6 +89,11 @@ class ContentGenerateRequest(BaseModel):
     feed_ids: list[int] | None = None
 
 
+class ContentRegenerateRequest(BaseModel):
+
+    type: str = "content"
+
+
 class ContentApprovalRequest(BaseModel):
 
     approved_by: str = "editor"

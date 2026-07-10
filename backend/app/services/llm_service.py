@@ -15,6 +15,8 @@ PLATFORM_WORD_LIMITS = {
     "blog": (700, 900),
 }
 
+
+
 PLATFORM_SPECS = {
     "instagram": (
         "150-220 words, sensory present-tense caption, three hashtag sets, "

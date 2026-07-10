@@ -44,3 +44,4 @@ generated_media
 CLIENT_POC.md
 travel_agent.db
 *.db
+.bolt
